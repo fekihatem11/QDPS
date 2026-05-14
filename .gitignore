@@ -15,8 +15,8 @@ methods/
 # Older method-comparison framework (superseded by qdps/)
 scripts/
 
-# Private notes / theory write-ups / slides
-docs/
+# PowerPoint slides — binary, edit locally
+docs/*.pptx
 
 # Experiment scratch space (configs/logs/results regenerable)
 experiments/
