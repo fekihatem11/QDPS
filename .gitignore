@@ -1,0 +1,73 @@
+# macOS
+.DS_Store
+
+# Editor / agent local config
+.claude/
+.idea/
+.vscode/
+
+# Vendored SETS replication package (clone from upstream)
+SETS/
+
+# Exploratory method modules (not part of the published method)
+methods/
+
+# Older method-comparison framework (superseded by qdps/)
+scripts/
+
+# Private notes / theory write-ups / slides
+docs/
+
+# Experiment scratch space (configs/logs/results regenerable)
+experiments/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Large artifacts (review per-folder before unignoring)
+*.npy
+*.pkl
+*.h5
+*.keras
+*.pt
+*.pth
+*.ckpt
+
+# Experiment outputs (often huge / regenerable)
+results/
+qdps/results/
+qdps/sets_results/
+experiments/results/
