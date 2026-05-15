@@ -29,8 +29,13 @@ Two modes:
 
     python cluster.py --subject mnist_LeNet1 --seed 0 --sweep
         Run the SETS 80-config grid, save sweep_results.json (not
-        cluster_results.npy). Reports the configs whose cluster count is
-        closest to --target-clusters (default 137 for mnist_LeNet1).
+        cluster_results.npy). Mirrors SETS's selection logic:
+          (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
+          AND (n_clusters >= --min-clusters if given)
+        then rank survivors by silhouette_umap descending. The winning
+        config goes into LOCKED_CONFIG; rerun without --sweep for the
+        per-instance clustering. --reference-clusters adds an informational
+        secondary view of closeness to a SETS-published cluster count.
 
 Determinism: random_state=42 for both UMAP stages; UMAP and HDBSCAN use
 n_jobs=1 / core_dist_n_jobs=1 (single-threaded execution is required to
@@ -76,9 +81,19 @@ SWEEP_NEIGHBOR_PAIRS  = [(5, 3), (10, 5), (15, 10), (20, 15), (25, 20)]
 SWEEP_MIN_DIST_1      = [0.03, 0.1, 0.25, 0.5]
 SWEEP_MIN_DIST_2      = 0.1   # SETS always uses 0.1 for the 2nd stage
 
-DEFAULT_TARGET_CLUSTERS = {
-    "mnist_LeNet1": 137,   # confirmed from qdps/fault_clusters/mnist_LeNet1/cluster_results.npy
-    "mnist_LeNet5": None,  # fill in after we know SETS's reference count for LeNet5
+# Sweep selection mirrors SETS/Source_code/cluster.py lines 189-201:
+#   if (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
+#      AND labels.max() + 2 >= MIN_CLUSTERS_FLOOR:
+#       record as candidate
+#   then "select the one config clustering that has best Silhouette score"
+SILHOUETTE_FLOOR = 0.1
+
+# Reference numbers from SETS for the corresponding fault_clusters/<subject>/
+# files. INFORMATIONAL ONLY -- not a selection criterion. We use them in the
+# sweep report to show how close each config lands to SETS's published output.
+SETS_REFERENCE_N_CLUSTERS = {
+    "mnist_LeNet1": 137,
+    "mnist_LeNet5": None,
 }
 
 
@@ -242,8 +257,12 @@ def cluster_summary(labels: np.ndarray) -> dict:
     }
 
 
-def maybe_silhouette(u_aug: np.ndarray, labels: np.ndarray, sample: int = 3000):
-    """Compute silhouette on a sample to keep cost bounded. Returns float or None."""
+def maybe_silhouette(X: np.ndarray, labels: np.ndarray, sample: int = 3000):
+    """Sampled silhouette to keep cost bounded. Returns float or None.
+
+    Pass `X` = the data the silhouette is computed against (u_aug for
+    silhouette_umap; total_features for silhouette_features).
+    """
     try:
         from sklearn.metrics import silhouette_score
     except ImportError:
@@ -256,7 +275,7 @@ def maybe_silhouette(u_aug: np.ndarray, labels: np.ndarray, sample: int = 3000):
     else:
         idx = np.where(real)[0]
     try:
-        return float(silhouette_score(u_aug[idx], labels[idx]))
+        return float(silhouette_score(X[idx], labels[idx]))
     except Exception:
         return None
 
@@ -287,11 +306,12 @@ def run_locked(subject: str, seed: int, config: dict, force: bool) -> int:
     )
 
     summary = cluster_summary(labels)
-    silhouette = maybe_silhouette(u_aug, labels)
+    silhouette_umap     = maybe_silhouette(u_aug, labels)
+    silhouette_features = maybe_silhouette(bundle["total_features"], labels)
 
     print(f"[cluster] result: {summary['n_clusters']} clusters, "
           f"{summary['n_noise']} noise ({summary['noise_frac']:.1%}), "
-          f"silhouette={silhouette}  "
+          f"silh_umap={silhouette_umap}, silh_feat={silhouette_features}  "
           f"(umap1 {timing['umap1_s']:.1f}s, umap2 {timing['umap2_s']:.1f}s, "
           f"hdbscan {timing['hdbscan_s']:.1f}s)")
 
@@ -302,7 +322,8 @@ def run_locked(subject: str, seed: int, config: dict, force: bool) -> int:
         "seed": seed,
         "config": config,
         "summary": summary,
-        "silhouette_sampled": silhouette,
+        "silhouette_umap_sampled":     silhouette_umap,
+        "silhouette_features_sampled": silhouette_features,
         "timing_s": timing,
         "n_mis_test":         bundle["n_mis_test"],
         "n_mis_train_subset": bundle["n_mis_train_subset"],
@@ -331,9 +352,19 @@ def run_locked(subject: str, seed: int, config: dict, force: bool) -> int:
     return 0
 
 
-def run_sweep(subject: str, seed: int, target_clusters: int, force: bool) -> int:
+def run_sweep(subject: str, seed: int, min_clusters: int | None,
+              reference_clusters: int | None, force: bool) -> int:
     """Sweep SETS's 80-config grid. Writes sweep_results.json. Does NOT
-    write cluster_results.npy -- pick a config, set LOCKED_CONFIG, rerun."""
+    write cluster_results.npy -- pick a config, set LOCKED_CONFIG, rerun.
+
+    Selection mirrors SETS/Source_code/cluster.py:
+      pass = (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
+             AND (min_clusters is None OR n_clusters >= min_clusters)
+      then rank survivors by silhouette_umap descending and pick best.
+
+    `reference_clusters` is informational only -- a secondary view in the
+    printed report showing each config's distance to a SETS-published count.
+    """
     bundle = build_total_matrix(subject, seed)
     out_dir = bundle["inst_dir"] / "clusters"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -354,7 +385,10 @@ def run_sweep(subject: str, seed: int, target_clusters: int, force: bool) -> int
                     "min_dist_1":     md1, "min_dist_2":     SWEEP_MIN_DIST_2,
                     "min_cluster_size": 5, "random_state":    42,
                 })
-    print(f"[cluster] sweep: {len(configs)} configs, target_clusters={target_clusters}")
+    print(f"[cluster] sweep: {len(configs)} configs, "
+          f"silhouette_floor={SILHOUETTE_FLOOR}, "
+          f"min_clusters={min_clusters}, "
+          f"reference_clusters={reference_clusters}")
 
     results = []
     t_total = time.time()
@@ -368,17 +402,42 @@ def run_sweep(subject: str, seed: int, target_clusters: int, force: bool) -> int
                 cfg,
             )
             summary = cluster_summary(labels)
-            silhouette = maybe_silhouette(u_aug, labels)
-            distance_to_target = abs(summary["n_clusters"] - target_clusters)
-            print(f"  -> {summary['n_clusters']} clusters, "
-                  f"{summary['n_noise']} noise ({summary['noise_frac']:.1%}), "
-                  f"silhouette={silhouette}, dist_to_target={distance_to_target}")
+            silhouette_umap     = maybe_silhouette(u_aug, labels)
+            silhouette_features = maybe_silhouette(bundle["total_features"], labels)
+
+            # SETS criterion:
+            #   (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
+            #   AND optional min_clusters floor
+            passes_silhouette = (
+                (silhouette_umap is not None and silhouette_umap >= SILHOUETTE_FLOOR)
+                or
+                (silhouette_features is not None and silhouette_features >= SILHOUETTE_FLOOR)
+            )
+            passes_min_clusters = (
+                min_clusters is None or summary["n_clusters"] >= min_clusters
+            )
+            passes_filter = passes_silhouette and passes_min_clusters
+
+            distance_to_reference = (
+                abs(summary["n_clusters"] - reference_clusters)
+                if reference_clusters is not None else None
+            )
+
+            print(f"  -> {summary['n_clusters']:4d} clusters, "
+                  f"{summary['n_noise']:4d} noise ({summary['noise_frac']:.1%}), "
+                  f"silh_umap={silhouette_umap}, silh_feat={silhouette_features}, "
+                  f"passes={passes_filter}")
+
             results.append({
                 "config": cfg,
                 "summary": summary,
-                "silhouette_sampled": silhouette,
+                "silhouette_umap_sampled":     silhouette_umap,
+                "silhouette_features_sampled": silhouette_features,
+                "passes_silhouette_floor":     passes_silhouette,
+                "passes_min_clusters":         passes_min_clusters,
+                "passes_filter":               passes_filter,
+                "distance_to_reference":       distance_to_reference,
                 "timing_s": timing,
-                "distance_to_target": distance_to_target,
                 "status": "ok",
             })
         except Exception as e:  # noqa: broad-except is fine for a sweep
@@ -391,38 +450,92 @@ def run_sweep(subject: str, seed: int, target_clusters: int, force: bool) -> int
 
     total_elapsed = time.time() - t_total
 
-    # Sort by distance to target (lowest first), then by silhouette (highest).
-    def key(r):
+    # Primary ranking: SETS criterion -- among configs passing the filter,
+    # sort by silhouette_umap descending. Configs that fail the filter sort
+    # to the bottom but are still recorded for transparency.
+    def primary_key(r):
         if r["status"] != "ok":
-            return (10**9, 0.0)
-        sil = r.get("silhouette_sampled") or 0.0
-        return (r["distance_to_target"], -sil)
-    ranked = sorted(results, key=key)
+            return (1, -10.0)
+        if not r["passes_filter"]:
+            return (1, -(r["silhouette_umap_sampled"] or -10.0))
+        return (0, -(r["silhouette_umap_sampled"] or 0.0))
+    ranked_primary = sorted(results, key=primary_key)
 
-    print(f"[cluster] sweep complete in {total_elapsed:.1f}s, "
-          f"top 5 configs by distance to target ({target_clusters}):")
-    for r in ranked[:5]:
-        if r["status"] != "ok":
-            continue
+    # Secondary (informational) view: closest to SETS reference cluster count.
+    if reference_clusters is not None:
+        def secondary_key(r):
+            if r["status"] != "ok":
+                return (10**9, 0.0)
+            return (r["distance_to_reference"] or 10**9,
+                    -(r["silhouette_umap_sampled"] or 0.0))
+        ranked_by_reference = sorted(results, key=secondary_key)
+    else:
+        ranked_by_reference = None
+
+    survivors = [r for r in ranked_primary if r["status"] == "ok" and r["passes_filter"]]
+    winner = survivors[0] if survivors else None
+
+    def fmt_silh(x):
+        return f"{x:.3f}" if x is not None else "  None"
+
+    def fmt_line(r):
         s = r["summary"]
-        print(f"  dist={r['distance_to_target']:3d}  "
-              f"clusters={s['n_clusters']:4d}  "
-              f"noise={s['n_noise']:4d}({s['noise_frac']:.1%})  "
-              f"silhouette={r.get('silhouette_sampled')}  "
-              f"config={r['config']}")
+        line = (f"  clusters={s['n_clusters']:4d}  "
+                f"noise={s['n_noise']:4d}({s['noise_frac']:.1%})  "
+                f"silh_umap={fmt_silh(r.get('silhouette_umap_sampled'))}  "
+                f"silh_feat={fmt_silh(r.get('silhouette_features_sampled'))}  ")
+        if r.get("distance_to_reference") is not None:
+            line += f"dist_ref={r['distance_to_reference']:3d}  "
+        line += f"pass={'Y' if r.get('passes_filter') else 'N'}  config={r['config']}"
+        return line
+
+    print(f"[cluster] sweep complete in {total_elapsed:.1f}s "
+          f"({len(survivors)}/{len(results)} survive the SETS filter)")
+    print(f"[cluster] top 5 BY SETS CRITERION (filter passing, "
+          f"ranked by silhouette_umap):")
+    n_shown = 0
+    for r in ranked_primary:
+        if r["status"] != "ok" or not r["passes_filter"]:
+            continue
+        print(fmt_line(r))
+        n_shown += 1
+        if n_shown >= 5:
+            break
+    if n_shown == 0:
+        print("  (none -- no configs passed the filter; "
+              "consider lowering --min-clusters or inspect sweep_results.json)")
+    if winner is not None:
+        print(f"[cluster] WINNER: {winner['config']}  "
+              f"(silh_umap={fmt_silh(winner['silhouette_umap_sampled'])}, "
+              f"clusters={winner['summary']['n_clusters']})")
+
+    if ranked_by_reference is not None:
+        print(f"[cluster] top 5 BY DISTANCE TO REFERENCE "
+              f"({reference_clusters} clusters; informational only):")
+        for r in ranked_by_reference[:5]:
+            if r["status"] != "ok":
+                continue
+            print(fmt_line(r))
 
     payload = {
         "subject": subject,
         "seed": seed,
-        "target_clusters": target_clusters,
-        "total_elapsed_s": total_elapsed,
-        "n_configs": len(configs),
-        "results_ranked": ranked,
-        "git_commit": git_commit(),
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "python": sys.version.split()[0],
-        "numpy": np.__version__,
-        "platform": platform.platform(),
+        "selection_criterion": "SETS: (silh_umap>=0.1 OR silh_feat>=0.1) "
+                                "AND (n_clusters>=min_clusters if set); "
+                                "rank survivors by silh_umap desc",
+        "silhouette_floor":   SILHOUETTE_FLOOR,
+        "min_clusters":       min_clusters,
+        "reference_clusters": reference_clusters,
+        "n_survivors":        len(survivors),
+        "winner":             (winner["config"] if winner else None),
+        "total_elapsed_s":    total_elapsed,
+        "n_configs":          len(configs),
+        "results_ranked":     ranked_primary,
+        "git_commit":         git_commit(),
+        "timestamp_utc":      datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "python":             sys.version.split()[0],
+        "numpy":              np.__version__,
+        "platform":           platform.platform(),
     }
     sweep_path.write_text(json.dumps(payload, indent=2))
     print(f"[cluster] wrote {sweep_path}")
@@ -435,9 +548,13 @@ def main() -> int:
     p.add_argument("--seed", type=int, required=True)
     p.add_argument("--sweep", action="store_true",
                    help="Run the SETS 80-config sweep; write sweep_results.json only")
-    p.add_argument("--target-clusters", type=int, default=None,
-                   help="Target cluster count for sweep ranking "
-                        "(default: SETS reference for the subject)")
+    p.add_argument("--min-clusters", type=int, default=None,
+                   help="Sweep filter floor on n_clusters (default: no floor). "
+                        "SETS's example uses 200, but that's Fruit-360-specific.")
+    p.add_argument("--reference-clusters", type=int, default=None,
+                   help="Informational only: SETS-published cluster count for "
+                        "this subject; the sweep report shows distance to it. "
+                        "(default: SETS_REFERENCE_N_CLUSTERS for the subject)")
     p.add_argument("--force", action="store_true",
                    help="Overwrite existing cluster_results.npy / sweep_results.json")
     # Optional overrides of individual LOCKED_CONFIG fields (rare; mostly for
@@ -453,14 +570,13 @@ def main() -> int:
     args = p.parse_args()
 
     if args.sweep:
-        target = args.target_clusters
-        if target is None:
-            target = DEFAULT_TARGET_CLUSTERS.get(args.subject)
-            if target is None:
-                print(f"[cluster] ERROR: no DEFAULT_TARGET_CLUSTERS for "
-                      f"{args.subject}. Pass --target-clusters N.", file=sys.stderr)
-                return 2
-        return run_sweep(args.subject, args.seed, target, args.force)
+        reference = args.reference_clusters
+        if reference is None:
+            reference = SETS_REFERENCE_N_CLUSTERS.get(args.subject)
+        return run_sweep(args.subject, args.seed,
+                         min_clusters=args.min_clusters,
+                         reference_clusters=reference,
+                         force=args.force)
 
     config = dict(LOCKED_CONFIG)
     overrides = {
