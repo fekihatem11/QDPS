@@ -99,9 +99,110 @@ Quality-weighted DPP MAP inference with a **mixed similarity kernel**:
 
 Hyperparameters are **budget-adaptive** (see `ADAPTIVE_DEFAULTS` in `qdps.py`). Don't hardcode a single setting — the small/medium/large regimes were tuned per budget.
 
+## Running on Compute Canada (Narval)
+
+**From now on, every heavy step of the robustness pipeline — model training, VGG16 feature extraction, predict, and clustering — runs on Narval (Digital Research Alliance of Canada), not locally.** Local execution is reserved for development / smoke tests / inspecting small results.
+
+### How Claude interacts with Narval
+
+The user's terminal holds an interactive SSH session to Narval (`ssh narval`, which resolves via `~/.ssh/config` to `artem11@narval.alliancecan.ca`). That session also creates an SSH **ControlMaster socket** at `~/.ssh/cm-artem11@narval.alliancecan.ca:22` that persists for 1 hour after the last connection. Because of this socket, Claude can run remote commands directly from its `Bash` tool:
+
+```
+ssh narval '<remote command>'
+```
+
+This reuses the user's authenticated session — no passphrase prompts, no MFA prompts, no extra logins — as long as the user keeps a recent interactive SSH session alive (re-auth every ~1 hour). If the socket has expired, the user must reconnect interactively in their terminal first (`ssh narval`, handle MFA), which refreshes it.
+
+**What Claude can do via this channel**: read/write small files, submit SLURM jobs (`sbatch`), check status (`squeue`, `sacct`), inspect outputs, clone/pull git. **What it cannot do**: long compute on the login node (against Alliance policy), interactive TTY apps (`htop`, `vim`).
+
+### Filesystem layout on Narval
+
+| Path | What's there | Why |
+|---|---|---|
+| `/home/artem11/QDPS/` | Git clone of the repo (code only) | `$HOME` is backed up but tiny (~50 GB). Code only. |
+| `/scratch/artem11/QDPS/.venv/` | Python 3.10 virtualenv with Narval-wheelhouse packages | Active work; regenerable. |
+| `/scratch/artem11/QDPS/instances/<subject>/seed_<n>/` | Trained `model.h5` + `meta.json` + `history.json` per (subject, seed) | Fast Lustre I/O for batch jobs. |
+| `/scratch/artem11/QDPS/features_for_clustering/` | Raw VGG16 features (`features_{train,test}_<dataset>_raw.npy`) | 1 GB+ per dataset — must be on `$SCRATCH`. |
+| `/scratch/artem11/QDPS/...` | All other per-instance outputs (predictions, cluster results) | Same reason. |
+| `/project/def-manel131/artem11/` | (Not yet used) Final paper-ready artifacts | Backed up, persistent. Copy from `$SCRATCH` when ready to publish. |
+
+**Symlink trick:** Because `train.py` and `extract_vgg_features.py` write to paths relative to themselves (`qdps/robustness/<subject>/instances/`), we create symlinks:
+
+```
+$HOME/QDPS/qdps/robustness/<subject>/instances  ->  $SCRATCH/QDPS/instances/<subject>
+$HOME/QDPS/qdps/robustness/features_for_clustering  ->  $SCRATCH/QDPS/features_for_clustering
+```
+
+This makes the scripts write directly to `$SCRATCH` without any code change. Set these up after a fresh `git clone`.
+
+### Python environment on Narval
+
+Narval's wheelhouse pins differently from PyPI and uses `+computecanada` version suffixes. The **mac requirements (`qdps/robustness/requirements.txt`) do not all resolve on Narval** — for example `tensorflow==2.13.1` is not available; the earliest there is `2.15.1`.
+
+The Narval install command Claude has tested working:
+
+```bash
+module load python/3.10
+virtualenv --no-download $SCRATCH/QDPS/.venv
+source $SCRATCH/QDPS/.venv/bin/activate
+pip install --no-index --upgrade pip
+pip install --no-index \
+  "tensorflow~=2.15.0" \
+  "scikit-learn~=1.3" \
+  "h5py~=3.10" \
+  "umap-learn>=0.5.7" \
+  "hdbscan>=0.8.37" \
+  matplotlib pandas scipy
+```
+
+Resolved versions: `tensorflow=2.15.1`, `keras=2.15.0`, `numpy=1.26.4`, `scipy=1.15.1`, `h5py=3.12.0`, `scikit-learn=1.5.2`, `hdbscan=0.8.37`, `matplotlib=3.10.0`, `pandas=2.2.3`.
+
+Determinism preserved: seed 0 of `mnist_LeNet1` produces identical `val_accuracy` to the local Mac run despite different TF versions, because SGD with fixed seeds is deterministic across these environments.
+
+### Running compute jobs
+
+SLURM account: **`def-manel131`** (covers both CPU and GPU allocations).
+
+Typical patterns Claude should use:
+
+```bash
+# Quick interactive check (login node is OK for ≤ ~2 min of CPU work)
+ssh narval 'cd $HOME/QDPS && module load python/3.10 && source $SCRATCH/QDPS/.venv/bin/activate && python <script>.py'
+
+# Real work — submit a SLURM batch job
+ssh narval 'sbatch --account=def-manel131 <job_script.sh>'
+
+# Check status
+ssh narval 'squeue -u $USER'
+ssh narval 'sacct -j <jobid> --format=JobID,JobName,State,Elapsed,MaxRSS'
+
+# Job array for the 5 seeds in parallel
+ssh narval 'sbatch --account=def-manel131 --array=0-4 <train_array.sh>'
+```
+
+**Approximate resource asks** (rules of thumb for our subjects):
+
+| Step | GPU? | CPUs | RAM | Walltime |
+|---|---|---|---|---|
+| MNIST LeNet1/5 training (per seed) | No (CPU is fine) | 2 | 4 GB | 5 min |
+| VGG16 feature extraction (per dataset) | 1× any GPU | 4 | 16 GB | 30 min |
+| Per-instance predict.py | No | 2 | 4 GB | 5 min |
+| Per-instance cluster.py (UMAP + HDBSCAN) | No | 8 | 16 GB | 30 min |
+| Training larger subjects (CIFAR-10 / ResNet20) | 1× any GPU | 4 | 16 GB | 1 hr |
+| Fruit-360 ResNet50 | 1× A100 | 8 | 32 GB | 6 hr |
+| TinyImageNet ResNet101 | 1× A100 | 8 | 64 GB | 12 hr |
+
+Login nodes only have CPUs — GPU work always goes through `sbatch`/`salloc`.
+
+### When something on Narval breaks
+
+1. **`Permission denied (keyboard-interactive,hostbased)`** when Claude calls `ssh narval` → the user's ControlMaster socket expired. Have them re-run `ssh narval` interactively, then retry.
+2. **`No matching distribution found for X`** during `pip install --no-index` → wheelhouse version mismatch. Check what's available with `find /cvmfs/soft.computecanada.ca/custom/python/wheelhouse -name '<pkg>*'` and loosen the pin.
+3. **Job stays in queue (`PD` state) for hours** → check `squeue -u $USER` and `sshare -U`. Account may be over its allocation; switch to the lower-priority "Resource Allocation Service" by dropping `--account` and Narval will use the default partition.
+
 ## Conventions
 
 - Published baseline FDRs (SETS / DeepGD / RS paper Table 3 numbers) are duplicated in `qdps/BASELINES.md`, `qdps/run_single_subject.py`, `qdps/compare_results.py`, and `scripts/compare_results.py`. If any of them changes, update all four.
 - Win/loss thresholds use a **±0.005 FDR band** for "tie" (see `compare_with_baseline` / `run_qdps_comparison`).
 - Experiment outputs always include `meta` (method, timestamp, n_runs, budgets, subjects) plus per-run FDR/time arrays so results stay reproducible.
-- This directory is **not a git repository**; `SETS/` is a vendored sub-repo with its own `.git/`. Don't run `git init` at the top level without asking.
+- The repo at `/Users/artem/Desktop/TCP` **is** a git repository now (initialized 2026-05-13, pushed to https://github.com/fekihatem11/QDPS). The vendored `SETS/` directory still has its own `.git/` — don't touch it.
