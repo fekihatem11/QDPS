@@ -5,8 +5,8 @@ identical for every retrained instance of the same subject -- VGG16 has
 ImageNet weights (frozen) and runs in inference mode, so the output is a
 deterministic function of input pixels only.
 
-Output:  qdps/robustness/features/features_{split}_{dataset}_raw.npy
-                                  features_{split}_{dataset}_meta.json
+Output:  qdps/robustness/features_for_clustering/{dataset}/features_{split}_raw.npy
+                                                            features_{split}_meta.json
 
 Pre-processing pipeline (faithful to SETS/Source_code/feature.py
 `vgg16_features_GD`, which itself reuses DeepGD's implementation):
@@ -128,17 +128,19 @@ def main() -> int:
                    help="Re-extract even if output files already exist")
     args = p.parse_args()
 
-    FEATURES_DIR.mkdir(parents=True, exist_ok=True)
+    dataset_dir = FEATURES_DIR / args.dataset
+    dataset_dir.mkdir(parents=True, exist_ok=True)
 
     import tensorflow as tf
     print(f"[extract] dataset={args.dataset} tf={tf.__version__}")
+    print(f"[extract] output dir: {dataset_dir}")
 
     splits = load_dataset(args.dataset)
     extractor = build_vgg_extractor()
 
     for split_name, (X, y) in splits.items():
-        out_path = FEATURES_DIR / f"features_{split_name}_{args.dataset}_raw.npy"
-        meta_path = FEATURES_DIR / f"features_{split_name}_{args.dataset}_meta.json"
+        out_path = dataset_dir / f"features_{split_name}_raw.npy"
+        meta_path = dataset_dir / f"features_{split_name}_meta.json"
         if out_path.exists() and not args.force:
             print(f"[extract] {out_path} exists, skipping (use --force to overwrite)")
             continue

@@ -65,7 +65,7 @@ All input data needed by the main QDPS comparison lives **inside `qdps/`** (the 
   - `mis_index_test.npy` (`.pkl` for TinyImageNet) — indices of misclassified test inputs
 - `qdps/features_for_selection/features_test_<subject>.npy` — VGG16 features (min-max normalized, X_scf variant) used by the QDPS / SETS *selection* kernel. `data_loader.load_subject` falls back here when `features_test.npy` is missing in a subject folder.
 - `qdps/baseline_results/{SETS,DeepGD,RS}/<subject>/` — published per-method per-run selection outputs (was `SETS/Experiment_results/RQ2&3/`). Used by `statistical_test.py`.
-- `qdps/robustness/features_for_clustering/features_{train,test}_<dataset>_raw.npy` — raw VGG16 features used by the **fault-clustering** pipeline (UMAP + HDBSCAN), separate from the selection-kernel features above because clustering needs un-normalized output.
+- `qdps/robustness/features_for_clustering/<dataset>/features_{train,test}_raw.npy` — raw VGG16 features used by the **fault-clustering** pipeline (UMAP + HDBSCAN), one subfolder per dataset (`mnist/`, `cifar10/`, …), separate from the selection-kernel features above because clustering needs un-normalized output.
 
 `fault_clusters/` folder names don't all match `data_name_model_name` exactly (`cifar10_12conv` is lowercase, `Fruit360_ResNet50` etc.). Use `FOLDER_MAP` in `data_loader.py` — don't construct paths by hand.
 
@@ -122,7 +122,7 @@ This reuses the user's authenticated session — no passphrase prompts, no MFA p
 | `/home/artem11/QDPS/` | Git clone of the repo (code only) | `$HOME` is backed up but tiny (~50 GB). Code only. |
 | `/scratch/artem11/QDPS/.venv/` | Python 3.10 virtualenv with Narval-wheelhouse packages | Active work; regenerable. |
 | `/scratch/artem11/QDPS/instances/<subject>/seed_<n>/` | Trained `model.h5` + `meta.json` + `history.json` per (subject, seed) | Fast Lustre I/O for batch jobs. |
-| `/scratch/artem11/QDPS/features_for_clustering/` | Raw VGG16 features (`features_{train,test}_<dataset>_raw.npy`) | 1 GB+ per dataset — must be on `$SCRATCH`. |
+| `/scratch/artem11/QDPS/features_for_clustering/<dataset>/` | Raw VGG16 features (`features_{train,test}_raw.npy` per dataset subfolder) | 1 GB+ per dataset — must be on `$SCRATCH`. |
 | `/scratch/artem11/QDPS/...` | All other per-instance outputs (predictions, cluster results) | Same reason. |
 | `/project/def-manel131/artem11/` | (Not yet used) Final paper-ready artifacts | Backed up, persistent. Copy from `$SCRATCH` when ready to publish. |
 
