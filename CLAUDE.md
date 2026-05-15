@@ -126,14 +126,19 @@ This reuses the user's authenticated session — no passphrase prompts, no MFA p
 | `/scratch/artem11/QDPS/...` | All other per-instance outputs (predictions, cluster results) | Same reason. |
 | `/project/def-manel131/artem11/` | (Not yet used) Final paper-ready artifacts | Backed up, persistent. Copy from `$SCRATCH` when ready to publish. |
 
-**Symlink trick:** Because `train.py` and `extract_vgg_features.py` write to paths relative to themselves (`qdps/robustness/<subject>/instances/`), we create symlinks:
+**Symlink trick:** Because `train.py` and `extract_vgg_features.py` write to paths relative to themselves (`qdps/robustness/<subject>/instances/`, `qdps/robustness/features_for_clustering/<dataset>/`), we create symlinks so writes land on `$SCRATCH`:
 
 ```
-$HOME/QDPS/qdps/robustness/<subject>/instances  ->  $SCRATCH/QDPS/instances/<subject>
-$HOME/QDPS/qdps/robustness/features_for_clustering  ->  $SCRATCH/QDPS/features_for_clustering
+# Per subject (one-time when adding a subject)
+mkdir -p $SCRATCH/QDPS/instances/<subject>
+ln -s $SCRATCH/QDPS/instances/<subject>  $HOME/QDPS/qdps/robustness/<subject>/instances
+
+# Per dataset (one-time when adding a dataset to extract VGG features for)
+mkdir -p $SCRATCH/QDPS/features_for_clustering/<dataset>
+ln -s $SCRATCH/QDPS/features_for_clustering/<dataset>  $HOME/QDPS/qdps/robustness/features_for_clustering/<dataset>
 ```
 
-This makes the scripts write directly to `$SCRATCH` without any code change. Set these up after a fresh `git clone`.
+We symlink the **dataset subfolder** (not the whole `features_for_clustering/` parent) because the parent holds a tracked README.md that lives in `$HOME`. Forget the per-dataset symlink and `extract_vgg_features.py` silently writes the 1+ GB of features into `$HOME` (which is 50 GB and backed up — bad).
 
 ### Python environment on Narval
 
