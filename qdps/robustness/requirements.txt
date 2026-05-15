@@ -1,0 +1,26 @@
+# Pinned versions for the robustness pipeline.
+# Tested on Python 3.10. Compute Canada (Narval) wheelhouse provides all of these.
+#
+# Setup:
+#     module load python/3.10 cuda/11.8 cudnn
+#     virtualenv --no-download $SCRATCH/QDPS/.venv
+#     source $SCRATCH/QDPS/.venv/bin/activate
+#     pip install --no-index --upgrade pip
+#     pip install --no-index -r requirements.txt
+
+numpy==1.24.3
+scipy==1.11.4
+scikit-learn==1.3.2
+h5py==3.10.0
+
+# Deep learning (training + feature extraction with VGG16)
+tensorflow==2.13.1
+keras==2.13.1
+
+# Fault clustering (port of SETS/Source_code/cluster.py)
+umap-learn==0.5.5
+hdbscan==0.8.33
+
+# Plotting / reporting (optional; only used by aggregate.py)
+matplotlib==3.8.2
+pandas==2.1.4

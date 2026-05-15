@@ -57,15 +57,34 @@ Return value is the list of selected test-input indices. The runner times the ca
 
 ### Data flow
 
-Input data is pre-processed by the SETS authors and lives in `SETS/Input_data/Fault_clusters/<subject>/`:
-- `output_probability.npy` — model softmax outputs (n_samples × n_classes)
-- `cluster_results.npy` (`.pkl` for TinyImageNet) — DBSCAN cluster label per misclassified input; `-1` = noise
-- `mis_index_test.npy` (`.pkl` for TinyImageNet) — indices of misclassified inputs
-- VGG16 features live one level up in `SETS/features/features_test_<subject>.npy` — `data_loader.load_subject` falls back to that location when `features_test.npy` is missing in the subject folder
+All input data needed by the main QDPS comparison lives **inside `qdps/`** (the original SETS replication package under `SETS/` is no longer referenced by any code path). The relevant folders:
 
-`Fault_clusters` folder names don't all match `data_name_model_name` exactly (`cifar10_12conv` is lowercase, `Fruit360_ResNet50` etc.). Use `FOLDER_MAP` in `data_loader.py` — don't construct paths by hand.
+- `qdps/fault_clusters/<subject>/` — ground-truth fault structure for each subject (was `SETS/Input_data/Fault_clusters/`). Files:
+  - `output_probability.npy` — model softmax outputs (n_samples × n_classes)
+  - `cluster_results.npy` (`.pkl` for TinyImageNet) — cluster label per misclassified input; `-1` = noise
+  - `mis_index_test.npy` (`.pkl` for TinyImageNet) — indices of misclassified test inputs
+- `qdps/features_for_selection/features_test_<subject>.npy` — VGG16 features (min-max normalized, X_scf variant) used by the QDPS / SETS *selection* kernel. `data_loader.load_subject` falls back here when `features_test.npy` is missing in a subject folder.
+- `qdps/baseline_results/{SETS,DeepGD,RS}/<subject>/` — published per-method per-run selection outputs (was `SETS/Experiment_results/RQ2&3/`). Used by `statistical_test.py`.
+- `qdps/robustness/features_for_clustering/features_{train,test}_<dataset>_raw.npy` — raw VGG16 features used by the **fault-clustering** pipeline (UMAP + HDBSCAN), separate from the selection-kernel features above because clustering needs un-normalized output.
+
+`fault_clusters/` folder names don't all match `data_name_model_name` exactly (`cifar10_12conv` is lowercase, `Fruit360_ResNet50` etc.). Use `FOLDER_MAP` in `data_loader.py` — don't construct paths by hand.
 
 FDR computation (`compute_fdr`) follows the SETS paper's **"1noisy"** convention: all noise-cluster (-1) misclassifications collapse to a single "fault", and `FDR = unique_faults_found / min(budget, total_faults)`. Don't change this — it's what the published numbers are measured against.
+
+### Image pre-processing (load-bearing detail)
+
+The SETS pretrained models (`SETS/Input_data/Pretrained_model/model_*.h5`) expect images scaled to **[-0.5, 0.5]**, *not* [0, 1]. Apply `X.astype("float32") / 255.0 - 0.5`. The `CLIP_MIN = -0.5, CLIP_MAX = 0.5` constants in `SETS/Source_code/cluster.py` are the hint.
+
+Verification: load `model_mnist_LeNet1.h5`, run it on the MNIST test set with this pre-processing, and the predictions match the recorded `SETS/Input_data/Fault_clusters/mnist_LeNet1/mis_index_test.npy` (1542 misclassifications → acc 0.8458). With [0, 1] scaling instead, the model degrades to acc ≈ 0.5053 — a real bug that's easy to introduce. **Any new training / inference code in the robustness pipeline must use the [-0.5, 0.5] convention.**
+
+Reference accuracies of the SETS pretrained models (test set, [-0.5, 0.5] pre-processing):
+
+| Subject | Test accuracy | n_mis (out of 10 000) |
+|---|---|---|
+| `mnist_LeNet1` | 0.8458 | 1542 |
+| `mnist_LeNet5` | 0.8785 | 1215 |
+
+The retrained robustness instances should land within ±2 pp of these targets.
 
 ### QDPS algorithm (the load-bearing idea)
 

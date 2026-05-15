@@ -13,7 +13,7 @@ from data_loader import DATA_MODEL_PAIRS, load_subject, compute_fdr
 from qdps import select as qdps_select, METHOD_NAME
 
 BUDGETS = [100, 300, 500]
-BASE_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "SETS", "Input_data", "Fault_clusters")
+BASE_DATA_PATH = os.path.join(os.path.dirname(__file__), "fault_clusters")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 

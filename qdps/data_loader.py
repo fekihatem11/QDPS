@@ -69,7 +69,11 @@ def load_subject(data_name, model_name, base_path):
         features = None
         feat_filename = FEATURES_FILE_MAP.get((data_name, model_name))
         if feat_filename:
-            alt_path = os.path.join(os.path.dirname(base_path), "..", "features", feat_filename)
+            # Selection-kernel features live in qdps/features_for_selection/
+            # (one level up from base_path = qdps/fault_clusters/<subject>/).
+            alt_path = os.path.join(
+                os.path.dirname(base_path), "..", "features_for_selection", feat_filename
+            )
             if os.path.exists(alt_path):
                 features = np.load(alt_path)
 

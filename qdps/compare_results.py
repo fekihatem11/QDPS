@@ -6,7 +6,7 @@ from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 from qdps import select as qdps_select
 import os
 
-BASE_DATA = os.path.join(os.path.dirname(__file__), "..", "SETS", "Input_data", "Fault_clusters")
+BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
 
 # Published SETS FDRs (Paper Table 3)
 SETS_PAPER = {

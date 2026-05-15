@@ -12,7 +12,7 @@ import numpy as np
 
 from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 
-BASE_DATA = os.path.join(os.path.dirname(__file__), "..", "SETS", "Input_data", "Fault_clusters")
+BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "sets_results")
 
 N_RUNS = 30

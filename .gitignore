@@ -70,4 +70,5 @@ htmlcov/
 results/
 qdps/results/
 qdps/sets_results/
+qdps/robustness/*/instances/seed_*/
 experiments/results/

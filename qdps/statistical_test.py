@@ -17,8 +17,8 @@ from qdps import select as qdps_select
 
 warnings.filterwarnings('ignore')
 
-BASELINE_DIR = os.path.join(os.path.dirname(__file__), "..", "SETS", "Experiment_results", "RQ2&3")
-BASE_DATA = os.path.join(os.path.dirname(__file__), "..", "SETS", "Input_data", "Fault_clusters")
+BASELINE_DIR = os.path.join(os.path.dirname(__file__), "baseline_results")
+BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
 
 N_RUNS = 30
 BUDGETS = [100, 300, 500]
