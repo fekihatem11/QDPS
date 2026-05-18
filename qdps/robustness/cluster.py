@@ -41,11 +41,23 @@ Modes:
         best-silhouette ranking, write sweep_results.json (same format as
         --sweep). Run after the 80-task array finishes.
 
-Selection (SETS-faithful):
-    pass = (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
+Selection (default; validation-derived):
+    pass = (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)   # SETS public
+           AND silhouette_features > 0                                # NEW
            AND (n_clusters >= --min-clusters if given)
     winner = first survivor when sorted by silhouette_umap descending.
-    --reference-clusters adds an informational secondary ranking.
+
+The `silhouette_features > 0` clause was added after a 2026-05-18
+diagnostic showed that the literal SETS public filter picks
+UMAP-induced illusory clusters (e.g. silh_umap=0.84 with silh_feat<0).
+The same diagnostic showed that on SETS's own pretrained
+model_mnist_LeNet1.h5, only configs with silh_features > 0 produce
+cluster counts near SETS's published 137.
+
+Pass --no-require-positive-silh-features to revert to the literal
+public criterion (debugging only).
+
+--reference-clusters adds an informational secondary ranking.
 
 Determinism: random_state=42 for both UMAP stages; UMAP and HDBSCAN use
 n_jobs=1 / core_dist_n_jobs=1 (single-threaded execution is required to
@@ -89,12 +101,34 @@ SWEEP_NEIGHBOR_PAIRS  = [(5, 3), (10, 5), (15, 10), (20, 15), (25, 20)]
 SWEEP_MIN_DIST_1      = [0.03, 0.1, 0.25, 0.5]
 SWEEP_MIN_DIST_2      = 0.1   # SETS always uses 0.1 for the 2nd stage
 
-# Sweep selection mirrors SETS/Source_code/cluster.py lines 189-201:
+# Sweep selection
+# ---------------
+# SETS's PUBLIC cluster.py (lines 189-201) says:
 #   if (silhouette_umap >= 0.1 OR silhouette_features >= 0.1)
 #      AND labels.max() + 2 >= MIN_CLUSTERS_FLOOR:
-#       record as candidate
-#   then "select the one config clustering that has best Silhouette score"
+#       record; pick best silhouette
+#
+# Validation on 2026-05-18 (sweep on SETS's pretrained model_mnist_LeNet1.h5)
+# proved that SETS's PUBLIC criterion alone cannot have produced their
+# PUBLISHED 137-cluster output. The literal SETS criterion picked an
+# 829-cluster config with silh_umap=0.84 but silh_features=-0.012 -- UMAP
+# was inventing the structure. The config that did reproduce ~137 clusters
+# (we got 121) had silh_features=+0.183 (the only one in the sweep with
+# substantial real structure in the raw 4608-d VGG space).
+#
+# Conclusion: SETS's actual selection must have ADDITIONALLY required
+# silh_features > 0 -- a "real structure in feature space, not UMAP
+# illusion" check. We bake that in as the default filter:
+#
+#   passes = (silh_umap >= 0.1 OR silh_features >= 0.1)   # SETS public
+#            AND silh_features > SILH_FEATURES_FLOOR        # validation finding
+#            AND (n_clusters >= --min-clusters if set)
+#   rank   = silh_umap descending (SETS public)
+#
+# Pass --no-require-positive-silh-features to revert to the literal SETS
+# public criterion (debugging only).
 SILHOUETTE_FLOOR = 0.1
+SILH_FEATURES_FLOOR = 0.0   # strict: silh_features > 0
 
 # Reference numbers from SETS for the corresponding fault_clusters/<subject>/
 # files. INFORMATIONAL ONLY -- not a selection criterion.
@@ -343,9 +377,20 @@ def _score_one_config(bundle: dict, cfg: dict) -> dict:
 
 def _apply_sets_filter(results: list[dict],
                         min_clusters: int | None,
-                        reference_clusters: int | None) -> None:
-    """Add passes_silhouette_floor / passes_min_clusters / passes_filter /
-    distance_to_reference fields to each result dict, in place."""
+                        reference_clusters: int | None,
+                        require_positive_silh_features: bool = True) -> None:
+    """Add passes_silhouette_floor / passes_features_positive /
+    passes_min_clusters / passes_filter / distance_to_reference fields
+    to each result dict, in place.
+
+    Default filter (consistent across subjects):
+        (silh_umap >= SILHOUETTE_FLOOR  OR  silh_features >= SILHOUETTE_FLOOR)
+        AND  silh_features > SILH_FEATURES_FLOOR                # validation-derived
+        AND  (n_clusters >= min_clusters if set)
+
+    Pass `require_positive_silh_features=False` to revert to the literal
+    SETS public filter (the silh_features > 0 clause is dropped).
+    """
     for r in results:
         if r.get("status") != "ok":
             continue
@@ -357,10 +402,17 @@ def _apply_sets_filter(results: list[dict],
             or
             (s_feat is not None and s_feat >= SILHOUETTE_FLOOR)
         )
+        passes_features_positive = (
+            s_feat is not None and s_feat > SILH_FEATURES_FLOOR
+        )
         passes_min = (min_clusters is None or nclu >= min_clusters)
         r["passes_silhouette_floor"] = passes_silh
+        r["passes_features_positive"] = passes_features_positive
         r["passes_min_clusters"] = passes_min
-        r["passes_filter"] = passes_silh and passes_min
+        if require_positive_silh_features:
+            r["passes_filter"] = passes_silh and passes_features_positive and passes_min
+        else:
+            r["passes_filter"] = passes_silh and passes_min
         r["distance_to_reference"] = (
             abs(nclu - reference_clusters)
             if reference_clusters is not None else None
@@ -435,18 +487,30 @@ def _rank_and_print_summary(results: list[dict],
 def _write_sweep_results(sweep_path: Path, subject: str, seed: int,
                           min_clusters: int | None,
                           reference_clusters: int | None,
+                          require_positive_silh_features: bool,
                           total_elapsed_s: float,
                           ranked_primary: list[dict],
                           winner: dict | None) -> None:
     survivors = [r for r in ranked_primary
                  if r["status"] == "ok" and r.get("passes_filter")]
+    if require_positive_silh_features:
+        criterion = ("Default: (silh_umap>=0.1 OR silh_feat>=0.1) "
+                     "AND silh_feat>0 AND (n_clusters>=min_clusters if set); "
+                     "rank by silh_umap desc. The silh_feat>0 clause is the "
+                     "validation-derived addition to SETS's public criterion.")
+    else:
+        criterion = ("SETS public: (silh_umap>=0.1 OR silh_feat>=0.1) "
+                     "AND (n_clusters>=min_clusters if set); "
+                     "rank by silh_umap desc. Does NOT require positive "
+                     "silh_features -- validation showed this picks "
+                     "UMAP-induced illusory clusters.")
     payload = {
         "subject": subject,
         "seed": seed,
-        "selection_criterion": "SETS: (silh_umap>=0.1 OR silh_feat>=0.1) "
-                                "AND (n_clusters>=min_clusters if set); "
-                                "rank survivors by silh_umap desc",
-        "silhouette_floor":   SILHOUETTE_FLOOR,
+        "selection_criterion": criterion,
+        "require_positive_silh_features": require_positive_silh_features,
+        "silhouette_floor":     SILHOUETTE_FLOOR,
+        "silh_features_floor":  SILH_FEATURES_FLOOR,
         "min_clusters":       min_clusters,
         "reference_clusters": reference_clusters,
         "n_survivors":        len(survivors),
@@ -537,6 +601,7 @@ def run_locked(subject: str, seed: int, config: dict, force: bool) -> int:
 def run_sweep_sequential(subject: str, seed: int,
                            min_clusters: int | None,
                            reference_clusters: int | None,
+                           require_positive_silh_features: bool,
                            force: bool) -> int:
     """Sequential sweep of all 80 configs in one process. Use the job-array
     mode (--config-index + --aggregate-sweep) for much faster wall time."""
@@ -569,11 +634,12 @@ def run_sweep_sequential(subject: str, seed: int,
         results.append(r)
     total_elapsed = time.time() - t_total
 
-    _apply_sets_filter(results, min_clusters, reference_clusters)
+    _apply_sets_filter(results, min_clusters, reference_clusters,
+                        require_positive_silh_features=require_positive_silh_features)
     ranked_primary, winner = _rank_and_print_summary(results, reference_clusters)
     _write_sweep_results(sweep_path, subject, seed, min_clusters,
-                          reference_clusters, total_elapsed,
-                          ranked_primary, winner)
+                          reference_clusters, require_positive_silh_features,
+                          total_elapsed, ranked_primary, winner)
     print(f"[cluster] wrote {sweep_path}")
     return 0
 
@@ -621,6 +687,7 @@ def run_one_config(subject: str, seed: int, config_index: int, force: bool) -> i
 def aggregate_sweep(subject: str, seed: int,
                      min_clusters: int | None,
                      reference_clusters: int | None,
+                     require_positive_silh_features: bool,
                      force: bool) -> int:
     """Read all per_config_*.json files, apply the SETS filter and ranking,
     write sweep_results.json. Run after the 80-task job array finishes."""
@@ -652,14 +719,15 @@ def aggregate_sweep(subject: str, seed: int,
         return 3
     print(f"[cluster] aggregated {len(results)}/{expected} per-config results")
 
-    _apply_sets_filter(results, min_clusters, reference_clusters)
+    _apply_sets_filter(results, min_clusters, reference_clusters,
+                        require_positive_silh_features=require_positive_silh_features)
     ranked_primary, winner = _rank_and_print_summary(results, reference_clusters)
     total_elapsed = sum(
         r.get("wall_seconds", 0.0) for r in ranked_primary if r["status"] == "ok"
     )
     _write_sweep_results(sweep_path, subject, seed, min_clusters,
-                          reference_clusters, total_elapsed,
-                          ranked_primary, winner)
+                          reference_clusters, require_positive_silh_features,
+                          total_elapsed, ranked_primary, winner)
     print(f"[cluster] wrote {sweep_path}")
     return 0
 
@@ -684,6 +752,11 @@ def main() -> int:
                    help="Informational only: SETS-published cluster count for "
                         "this subject; the sweep report shows distance to it. "
                         "(default: SETS_REFERENCE_N_CLUSTERS for the subject)")
+    p.add_argument("--no-require-positive-silh-features", action="store_true",
+                   help="Revert to the literal SETS public filter (drop the "
+                        "silh_features > 0 clause). Debug only -- the default "
+                        "filter is the validation-derived version that matches "
+                        "SETS's published cluster counts.")
     p.add_argument("--force", action="store_true",
                    help="Overwrite existing output files")
     # LOCKED_CONFIG overrides (rare; for spot-checking a single config)
@@ -697,6 +770,8 @@ def main() -> int:
     p.add_argument("--random-state",   type=int)
     args = p.parse_args()
 
+    require_pos_feat = not args.no_require_positive_silh_features
+
     # Mode dispatch
     if args.aggregate_sweep:
         if args.config_index is not None or args.sweep:
@@ -709,6 +784,7 @@ def main() -> int:
         return aggregate_sweep(args.subject, args.seed,
                                 min_clusters=args.min_clusters,
                                 reference_clusters=reference,
+                                require_positive_silh_features=require_pos_feat,
                                 force=args.force)
 
     if args.config_index is not None:
@@ -726,6 +802,7 @@ def main() -> int:
         return run_sweep_sequential(args.subject, args.seed,
                                       min_clusters=args.min_clusters,
                                       reference_clusters=reference,
+                                      require_positive_silh_features=require_pos_feat,
                                       force=args.force)
 
     # Locked single-config run
