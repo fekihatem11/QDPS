@@ -80,16 +80,24 @@ HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 FEATURES_ROOT = HERE / "features_for_clustering"
 
-# Locked clustering config -- updated after a one-time --sweep on seed 0.
-# Before the sweep, this is SETS's first sweep tuple as a placeholder.
-# Changing this silently changes what the experiment measures -- any edit
+# Locked clustering config -- the winner of the seed-0 sweep under the
+# default filter (silh_features > 0). Picked on 2026-05-18 for mnist_LeNet1
+# and reused across all 5 retrained instances of the subject so the only
+# variance in the per-instance cluster_results.npy comes from the model
+# itself, not from the clustering hyperparams.
+#
+# Cross-validated on SETS's pretrained model_mnist_LeNet1.h5 (same config
+# produces 121 clusters there -- distance 16 from SETS's published 137,
+# and the closest of any config in the 80-grid).
+#
+# Editing this silently changes what the experiment measures -- any edit
 # is a methodology change.
 LOCKED_CONFIG = {
     "n_components_1": 500,
     "n_components_2": 450,
-    "n_neighbors_1":  15,
-    "n_neighbors_2":  10,
-    "min_dist_1":     0.1,
+    "n_neighbors_1":  5,
+    "n_neighbors_2":  3,
+    "min_dist_1":     0.03,
     "min_dist_2":     0.1,
     "min_cluster_size": 5,
     "random_state":   42,
