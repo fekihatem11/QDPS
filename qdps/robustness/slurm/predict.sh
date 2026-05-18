@@ -35,6 +35,13 @@ cd "$HOME/QDPS"
 
 SUBJECT=${SUBJECT:-mnist_LeNet1}
 
+# Stagger array tasks by SLURM_ARRAY_TASK_ID * 30s so they don't all hit
+# Lustre simultaneously when importing TF + loading model.h5. Without
+# this, 5 colocated tasks deadlock in D-state for several minutes.
+STAGGER=$((SLURM_ARRAY_TASK_ID * 30))
+echo "Staggering start by ${STAGGER}s to spread Lustre I/O..."
+sleep "$STAGGER"
+
 echo "----- SLURM job info -----"
 echo "Job:      $SLURM_JOB_NAME ($SLURM_JOB_ID task $SLURM_ARRAY_TASK_ID)"
 echo "Host:     $(hostname)"
@@ -45,6 +52,7 @@ echo "Commit:   $(git rev-parse --short HEAD)"
 echo "Python:   $(python --version)"
 echo "--------------------------"
 
-python qdps/robustness/predict.py --subject "$SUBJECT" --seed "$SLURM_ARRAY_TASK_ID"
+# -u: unbuffered stdout/stderr so log files show progress in real time
+python -u qdps/robustness/predict.py --subject "$SUBJECT" --seed "$SLURM_ARRAY_TASK_ID"
 
 echo "Finished: $(date -Iseconds)"
