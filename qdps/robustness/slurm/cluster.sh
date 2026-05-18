@@ -13,6 +13,8 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=/scratch/%u/QDPS/slurm_logs/cluster-%A_%a.out
 #SBATCH --error=/scratch/%u/QDPS/slurm_logs/cluster-%A_%a.err
+#SBATCH --mail-type=END,FAIL,ARRAY_TASKS
+#SBATCH --mail-user=fekihatem72@gmail.com
 
 set -e
 

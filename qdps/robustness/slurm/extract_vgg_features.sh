@@ -17,6 +17,8 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=/scratch/%u/QDPS/slurm_logs/vgg-extract-%j.out
 #SBATCH --error=/scratch/%u/QDPS/slurm_logs/vgg-extract-%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=fekihatem72@gmail.com
 
 set -e
 

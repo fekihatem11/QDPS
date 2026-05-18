@@ -18,6 +18,8 @@
 #SBATCH --time=00:20:00
 #SBATCH --output=/scratch/%u/QDPS/slurm_logs/predict-%A_%a.out
 #SBATCH --error=/scratch/%u/QDPS/slurm_logs/predict-%A_%a.err
+#SBATCH --mail-type=END,FAIL,ARRAY_TASKS
+#SBATCH --mail-user=fekihatem72@gmail.com
 
 set -e
 

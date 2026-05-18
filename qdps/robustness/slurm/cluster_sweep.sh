@@ -14,6 +14,8 @@
 #SBATCH --time=12:00:00
 #SBATCH --output=/scratch/%u/QDPS/slurm_logs/cluster-sweep-%j.out
 #SBATCH --error=/scratch/%u/QDPS/slurm_logs/cluster-sweep-%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=fekihatem72@gmail.com
 
 set -e
 
