@@ -5,10 +5,10 @@
 #
 # Submit as a dependent job after the sweep array:
 #     ARRAY_JOBID=$(sbatch --parsable --export=ALL,SUBJECT=mnist_LeNet1 \
-#                          qdps/robustness/slurm/cluster_sweep_array.sh)
+#                          qdps/robustness/slurm/cluster/cluster_sweep_array.sh)
 #     sbatch --dependency=afterok:$ARRAY_JOBID \
 #             --export=ALL,SUBJECT=mnist_LeNet1 \
-#             qdps/robustness/slurm/aggregate_sweep.sh
+#             qdps/robustness/slurm/cluster/aggregate_sweep.sh
 #
 # Logs: $SCRATCH/QDPS/slurm_logs/sweep-agg-<jobid>.out
 

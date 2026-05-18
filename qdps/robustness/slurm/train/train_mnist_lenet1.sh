@@ -4,7 +4,7 @@
 # $SCRATCH/QDPS/instances/mnist_LeNet1/seed_<n>/{model.h5,meta.json,history.json}
 # via the symlink $HOME/QDPS/qdps/robustness/mnist_LeNet1/instances -> $SCRATCH/...
 #
-# Submit:   sbatch qdps/robustness/slurm/train_mnist_lenet1.sh
+# Submit:   sbatch qdps/robustness/slurm/train/train_mnist_lenet1.sh
 # Status:   squeue -u $USER
 # Logs:     $SCRATCH/QDPS/slurm_logs/lenet1-<jobid>_<task>.out
 

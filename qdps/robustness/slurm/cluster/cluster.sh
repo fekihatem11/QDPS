@@ -2,7 +2,7 @@
 # Per-instance fault clustering. Uses LOCKED_CONFIG from cluster.py
 # (set after the one-time --sweep on seed 0). Runs as a 5-task job array.
 #
-# Submit:   sbatch --export=ALL,SUBJECT=mnist_LeNet1 qdps/robustness/slurm/cluster.sh
+# Submit:   sbatch --export=ALL,SUBJECT=mnist_LeNet1 qdps/robustness/slurm/cluster/cluster.sh
 # Logs:     $SCRATCH/QDPS/slurm_logs/cluster-<jobid>_<task>.out
 
 #SBATCH --account=def-manel131

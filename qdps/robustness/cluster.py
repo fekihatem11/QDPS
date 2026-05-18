@@ -34,7 +34,7 @@ Modes:
                       --config-index N
         Parallel sweep mode: run ONLY config N (0..79) and write
         clusters/per_config/per_config_NN.json. Used by the 80-task job
-        array (slurm/cluster_sweep_array.sh).
+        array (slurm/cluster/cluster_sweep_array.sh).
 
     python cluster.py --subject mnist_LeNet1 --seed 0 --aggregate-sweep
         Read all per_config_*.json files, apply SETS filter +

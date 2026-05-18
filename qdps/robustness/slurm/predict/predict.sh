@@ -5,9 +5,9 @@
 # via the symlink $HOME/QDPS/qdps/robustness/<subject>/instances -> $SCRATCH/...
 #
 # Submit (default subject=mnist_LeNet1):
-#     sbatch qdps/robustness/slurm/predict.sh
+#     sbatch qdps/robustness/slurm/predict/predict.sh
 # Subject override:
-#     sbatch --export=ALL,SUBJECT=mnist_LeNet5 qdps/robustness/slurm/predict.sh
+#     sbatch --export=ALL,SUBJECT=mnist_LeNet5 qdps/robustness/slurm/predict/predict.sh
 # Logs: $SCRATCH/QDPS/slurm_logs/predict-<jobid>_<task>.out
 
 #SBATCH --account=def-manel131

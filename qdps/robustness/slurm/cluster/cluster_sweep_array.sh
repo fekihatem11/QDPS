@@ -6,10 +6,10 @@
 #
 # Submit:
 #     sbatch --export=ALL,SUBJECT=mnist_LeNet1 \
-#             qdps/robustness/slurm/cluster_sweep_array.sh
+#             qdps/robustness/slurm/cluster/cluster_sweep_array.sh
 #     sbatch --dependency=afterok:<jobid_above> \
 #             --export=ALL,SUBJECT=mnist_LeNet1 \
-#             qdps/robustness/slurm/aggregate_sweep.sh
+#             qdps/robustness/slurm/cluster/aggregate_sweep.sh
 #
 # Logs: $SCRATCH/QDPS/slurm_logs/sweep-arr-<jobid>_<task>.out
 

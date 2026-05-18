@@ -4,7 +4,7 @@
 # Writes $SCRATCH/QDPS/features_for_clustering/<dataset>/features_{train,test}_raw.npy
 # via the symlink $HOME/QDPS/qdps/robustness/features_for_clustering -> $SCRATCH/...
 #
-# Submit:   sbatch --export=ALL,DATASET=mnist qdps/robustness/slurm/extract_vgg_features.sh
+# Submit:   sbatch --export=ALL,DATASET=mnist qdps/robustness/slurm/features/extract_vgg_features.sh
 # Default:  DATASET=mnist
 # Status:   squeue -u $USER
 # Logs:     $SCRATCH/QDPS/slurm_logs/vgg-extract-<jobid>.out

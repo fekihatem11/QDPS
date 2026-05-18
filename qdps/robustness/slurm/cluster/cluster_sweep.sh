@@ -2,9 +2,12 @@
 # One-time UMAP/HDBSCAN hyperparameter sweep on (subject, seed=0).
 # Tries SETS's 80-config grid, ranks by closeness to target cluster count.
 # After this finishes, pick the winning config and update LOCKED_CONFIG in
-# qdps/robustness/cluster.py, then submit slurm/cluster.sh for all seeds.
+# qdps/robustness/cluster.py, then submit slurm/cluster/cluster.sh for all seeds.
 #
-# Submit:   sbatch --export=ALL,SUBJECT=mnist_LeNet1 qdps/robustness/slurm/cluster_sweep.sh
+# This is the sequential single-job sweep -- much slower than the parallel
+# job-array version (slurm/cluster/cluster_sweep_array.sh). Kept as fallback.
+#
+# Submit:   sbatch --export=ALL,SUBJECT=mnist_LeNet1 qdps/robustness/slurm/cluster/cluster_sweep.sh
 # Logs:     $SCRATCH/QDPS/slurm_logs/cluster-sweep-<jobid>.out
 
 #SBATCH --account=def-manel131
