@@ -596,8 +596,9 @@ def run_locked(subject: str, seed: int, config: dict, force: bool) -> int:
     try:
         import umap
         import hdbscan
-        cluster_meta["umap_learn"] = umap.__version__
-        cluster_meta["hdbscan"]    = hdbscan.__version__
+        # getattr fallback: on Narval, hdbscan is built without __version__.
+        cluster_meta["umap_learn"] = getattr(umap, "__version__", "unknown")
+        cluster_meta["hdbscan"]    = getattr(hdbscan, "__version__", "unknown")
     except ImportError:
         pass
     meta_path.write_text(json.dumps(cluster_meta, indent=2))
