@@ -2,12 +2,12 @@
 \centering
 \caption{Accuracy improvements (\%) from retraining with selected test inputs ($k=500$): QDPS vs SETS. Bold indicates the higher improvement; $^{*}$ marks a statistically significant difference (Wilcoxon, $p<0.05$).}
 \label{tab:retrain_qdps_vs_sets}
-\begin{tabular}{l|c}
+\begin{tabular}{l|ccc}
 \toprule
-Method & MNIST/LeNet1 \\
+Method & MNIST/LeNet1 & MNIST/LeNet5 & Fashion/LeNet4 \\
 \midrule
-QDPS & \textbf{8.80} \\
-SETS & 8.79 \\
+QDPS & \textbf{8.80} & \textbf{7.61} & 1.05 \\
+SETS & 8.79 & 7.58 & \textbf{1.06} \\
 \bottomrule
 \end{tabular}
 \end{table*}
