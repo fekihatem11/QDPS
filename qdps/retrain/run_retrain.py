@@ -16,13 +16,15 @@ import sys
 from datetime import datetime
 
 from qdps.io.loader import load_subject
-from qdps.io.paths import RESULTS_DIR
+from qdps.io.paths import RETRAIN_RESULTS_DIR
 from qdps.experiments.run_single_subject import SUBJECT_MAP
 from qdps.retrain.raw_data import load_raw_subject, load_pretrained_model
 from qdps.retrain.splits import load_T, make_V, selection_pool
 from qdps.retrain.selectors import SELECTORS
 from qdps.retrain.retrain_step import RetrainConfig, original_accuracy, retrain_and_eval
-from qdps.retrain.report import aggregate, wilcoxon_qdps_vs_sets, write_results
+from qdps.retrain.report import (
+    aggregate, wilcoxon_qdps_vs_sets, write_results, save_subject_result,
+)
 
 # Subjects runnable today (Phase 1). Extended as backends/data are added.
 MNIST_SUBJECTS = ["mnist_LeNet1", "mnist_LeNet5"]
@@ -87,9 +89,14 @@ def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
     }
     results = {}
     for subject_key in subjects:
-        results[subject_key] = run_subject(subject_key, budgets, methods, n_runs, seed, cfg)
+        sub_result = run_subject(subject_key, budgets, methods, n_runs, seed, cfg)
+        results[subject_key] = sub_result
+        # Persist immediately so a long multi-subject (or crashed) run keeps
+        # every completed subject in the durable comparison store.
+        store_path = save_subject_result(subject_key, sub_result, meta)
+        print(f"  saved -> {store_path}")
 
-    exp_dir = RESULTS_DIR / f"RETRAIN_{timestamp}"
+    exp_dir = RETRAIN_RESULTS_DIR / f"RETRAIN_{timestamp}"
     summary = write_results(str(exp_dir), meta, results)
     print(f"\n{summary}\nSaved to: {exp_dir}/")
     return results, exp_dir

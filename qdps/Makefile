@@ -40,6 +40,10 @@ retrain:
 retrain-mnist:
 	cd .. && $(PYTHON) -m qdps.retrain.run_retrain all-mnist 500 5
 
+## retrain-table — Build QDPS-vs-SETS comparison LaTeX table from retrain_results/ (usage: make retrain-table K=500)
+retrain-table:
+	cd .. && $(PYTHON) -m qdps.analysis.generate_retrain_table $(or $(K),500)
+
 ## help — Show available commands
 help:
 	@echo ""
@@ -56,6 +60,8 @@ help:
 	@echo "  make retrain S=mnist_LeNet1 K=500 N=5"
 	@echo "                — RQ4 retraining experiment (QDPS vs SETS)"
 	@echo "  make retrain-mnist — Phase-1 validation slice (MNIST, k=500, 5 runs)"
+	@echo "  make retrain-table K=500"
+	@echo "                — Build QDPS-vs-SETS comparison LaTeX table"
 	@echo "  make clean    — Remove all experiment results"
 	@echo ""
 
@@ -63,4 +69,4 @@ help:
 clean:
 	rm -rf results/
 
-.PHONY: compare run quick single subject table sets stat retrain retrain-mnist help clean
+.PHONY: compare run quick single subject table sets stat retrain retrain-mnist retrain-table help clean

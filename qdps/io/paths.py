@@ -19,3 +19,9 @@ RETRAIN_DIR = Path(os.environ.get("QDPS_RETRAIN_DIR", DATASETS / "retrain"))
 PRETRAINED_MODELS = RETRAIN_DIR / "pretrained"     # model_{data}_{model}.h5
 RETRAIN_SPLITS = RETRAIN_DIR / "splits"            # {data}_{model}.pkl  (the test pool T)
 RAW_DATA_DIR = RETRAIN_DIR / "raw"                 # SVHN .mat / Fruit .npy / TinyImageNet images
+
+# All retraining-experiment outputs live under the retrain package folder:
+# the durable per-subject store (<subject>.json, accumulated across runs) and the
+# timestamped full-run dirs (RETRAIN_<ts>/). Override via QDPS_RETRAIN_DIR's sibling
+# is not needed; this stays with the experiment code.
+RETRAIN_RESULTS_DIR = PKG_ROOT / "retrain" / "results"

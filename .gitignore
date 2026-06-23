@@ -75,3 +75,6 @@ experiments/results/
 
 # Vendored RQ4 retraining assets (pretrained models / splits / raw data — large, regenerable)
 qdps/datasets/retrain/
+
+# RQ4 retraining experiment results (per-subject store + timestamped runs)
+qdps/retrain/results/
