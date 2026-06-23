@@ -105,10 +105,12 @@ def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
 def _parse_subjects(arg):
     if arg in ("all-mnist", "mnist"):
         return MNIST_SUBJECTS
-    if arg not in SUBJECT_MAP:
-        print(f"Unknown subject: {arg}\nAvailable: {', '.join(SUBJECT_MAP)} | all-mnist")
+    keys = arg.split(",") if "," in arg else [arg]
+    unknown = [k for k in keys if k not in SUBJECT_MAP]
+    if unknown:
+        print(f"Unknown subject(s): {unknown}\nAvailable: {', '.join(SUBJECT_MAP)} | all-mnist")
         sys.exit(1)
-    return [arg]
+    return keys
 
 
 def main(argv):

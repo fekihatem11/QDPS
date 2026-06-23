@@ -47,27 +47,52 @@ def _scale(x):
 
 # ---- per-dataset raw loaders ----
 
-def _load_mnist():
-    from tensorflow.keras.datasets import mnist
+def _keras_subject(x_train, y_train, x_test, y_test, n_classes):
+    """Build a RawSubject from raw keras arrays with the shared preprocessing."""
     from tensorflow.keras.utils import to_categorical
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train = _scale(x_train.reshape(-1, 28, 28, 1))
-    x_test = _scale(x_test.reshape(-1, 28, 28, 1))
     return RawSubject(
-        x_train=x_train,
-        y_train_oh=to_categorical(y_train, 10),
-        x_test=x_test,
+        x_train=_scale(x_train),
+        y_train_oh=to_categorical(y_train, n_classes),
+        x_test=_scale(x_test),
         y_test_int=np.asarray(y_test).astype(int).ravel(),
-        n_classes=10,
+        n_classes=n_classes,
         framework="keras",
     )
 
 
-# subject_key -> callable returning a RawSubject. Phase 1 = MNIST only;
-# other subjects are added in later phases (Fashion/CIFAR/SVHN/Fruit/Tiny).
+def _load_mnist():
+    from tensorflow.keras.datasets import mnist
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    return _keras_subject(
+        x_train.reshape(-1, 28, 28, 1), y_train,
+        x_test.reshape(-1, 28, 28, 1), y_test, 10,
+    )
+
+
+def _load_fashion():
+    from tensorflow.keras.datasets import fashion_mnist
+    (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+    return _keras_subject(
+        x_train.reshape(-1, 28, 28, 1), y_train,
+        x_test.reshape(-1, 28, 28, 1), y_test, 10,
+    )
+
+
+def _load_cifar10():
+    from tensorflow.keras.datasets import cifar10
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    # cifar images are already (N, 32, 32, 3); labels come as (N, 1).
+    return _keras_subject(x_train, y_train, x_test, y_test, 10)
+
+
+# subject_key -> callable returning a RawSubject. SVHN/Fruit/Tiny are added as
+# their raw data + (for Tiny) a torch backend land.
 RAW_LOADERS = {
     "mnist_LeNet1": _load_mnist,
     "mnist_LeNet5": _load_mnist,
+    "Fashion_mnist_LeNet4": _load_fashion,
+    "cifar10_12Conv": _load_cifar10,
+    "cifar10_ResNet20": _load_cifar10,
 }
 
 
