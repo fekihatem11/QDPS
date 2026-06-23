@@ -32,6 +32,14 @@ sets:
 stat:
 	cd .. && $(PYTHON) -m qdps.analysis.statistical_test
 
+## retrain — RQ4 retraining experiment QDPS vs SETS (usage: make retrain S=mnist_LeNet1 K=500 N=5)
+retrain:
+	cd .. && $(PYTHON) -m qdps.retrain.run_retrain $(or $(S),all-mnist) $(or $(K),500) $(or $(N),5)
+
+## retrain-mnist — Phase-1 validation slice: MNIST LeNet1/5, k=500, QDPS vs SETS, 5 runs
+retrain-mnist:
+	cd .. && $(PYTHON) -m qdps.retrain.run_retrain all-mnist 500 5
+
 ## help — Show available commands
 help:
 	@echo ""
@@ -45,6 +53,9 @@ help:
 	@echo "  make table    — Generate LaTeX table (QDPS vs SETS)"
 	@echo "  make sets     — Run SETS baseline (30 runs, saves to sets_results/)"
 	@echo "  make stat     — Wilcoxon Signed-Rank Test (30 runs vs baselines)"
+	@echo "  make retrain S=mnist_LeNet1 K=500 N=5"
+	@echo "                — RQ4 retraining experiment (QDPS vs SETS)"
+	@echo "  make retrain-mnist — Phase-1 validation slice (MNIST, k=500, 5 runs)"
 	@echo "  make clean    — Remove all experiment results"
 	@echo ""
 
@@ -52,4 +63,4 @@ help:
 clean:
 	rm -rf results/
 
-.PHONY: compare run quick single stat help clean
+.PHONY: compare run quick single subject table sets stat retrain retrain-mnist help clean
