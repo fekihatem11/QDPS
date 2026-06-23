@@ -27,7 +27,6 @@ TCP/
     qdps.py                   # THE algorithm — only loose .py at root
     __init__.py               # from .qdps import select, METHOD_NAME, ADAPTIVE_DEFAULTS
     Makefile                  # recipes rewritten to `python -m qdps.<sub>.<mod>`
-    README.md                 # optional short "how to run" pointer
 
     io/                       # data-access layer (code)
       __init__.py
