@@ -6,6 +6,8 @@ import numpy as np
 import pickle
 import os
 
+from qdps.io.paths import FAULT_CLUSTERS, FEATURES_FOR_SELECTION
+
 DATA_MODEL_PAIRS = [
     ("mnist", "LeNet1"),
     ("mnist", "LeNet5"),
@@ -42,7 +44,7 @@ FEATURES_FILE_MAP = {
 }
 
 
-def load_subject(data_name, model_name, base_path):
+def load_subject(data_name, model_name, base_path=FAULT_CLUSTERS):
     """Load all data for a given subject (dataset + model pair).
 
     Returns dict with keys:
@@ -69,12 +71,9 @@ def load_subject(data_name, model_name, base_path):
         features = None
         feat_filename = FEATURES_FILE_MAP.get((data_name, model_name))
         if feat_filename:
-            # Selection-kernel features live in qdps/features_for_selection/
-            # (one level up from base_path = qdps/fault_clusters/<subject>/).
-            alt_path = os.path.join(
-                os.path.dirname(base_path), "..", "features_for_selection", feat_filename
-            )
-            if os.path.exists(alt_path):
+            # Selection-kernel features live in qdps/datasets/features_for_selection/.
+            alt_path = FEATURES_FOR_SELECTION / feat_filename
+            if alt_path.exists():
                 features = np.load(alt_path)
 
     # Load cluster results and misclassified indices
