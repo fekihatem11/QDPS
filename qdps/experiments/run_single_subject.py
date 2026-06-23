@@ -18,11 +18,9 @@ import sys
 import time
 import numpy as np
 
-from data_loader import load_subject, compute_fdr
 from qdps import select as qdps_select
-import os
-
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
+from qdps.io.loader import load_subject, compute_fdr
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA
 
 BUDGETS = [100, 300, 500]
 

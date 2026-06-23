@@ -19,7 +19,7 @@ scripts/
 docs/*.pptx
 
 # Experiment scratch space (configs/logs/results regenerable)
-experiments/
+/experiments/
 
 # Python
 __pycache__/

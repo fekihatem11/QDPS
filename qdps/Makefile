@@ -2,35 +2,35 @@ PYTHON = python3
 
 ## compare — Run QDPS and compare against SETS/DeepGD/RS baselines
 compare:
-	$(PYTHON) compare_results.py
+	cd .. && $(PYTHON) -m qdps.analysis.compare_results
 
 ## run — Full experiment (30 runs per configuration)
 run:
-	$(PYTHON) run_experiment.py 30
+	cd .. && $(PYTHON) -m qdps.experiments.run_experiment 30
 
 ## quick — Quick experiment (5 runs per configuration)
 quick:
-	$(PYTHON) run_experiment.py 5
+	cd .. && $(PYTHON) -m qdps.experiments.run_experiment 5
 
 ## single — Single run (1 run per configuration)
 single:
-	$(PYTHON) run_experiment.py 1
+	cd .. && $(PYTHON) -m qdps.experiments.run_experiment 1
 
 ## subject — Run QDPS on a single subject (usage: make subject S=mnist_LeNet1 N=30 K=100,300,500)
 subject:
-	$(PYTHON) run_single_subject.py $(S) $(or $(N),30) $(if $(K),$(K))
+	cd .. && $(PYTHON) -m qdps.experiments.run_single_subject $(S) $(or $(N),30) $(if $(K),$(K))
 
 ## table — Generate LaTeX comparison table (QDPS vs SETS)
 table:
-	$(PYTHON) generate_table.py
+	cd .. && $(PYTHON) -m qdps.analysis.generate_fdr_table
 
 ## sets — Run SETS baseline on all subjects (30 runs), save to sets_results/
 sets:
-	$(PYTHON) run_sets_baseline.py
+	cd .. && $(PYTHON) -m qdps.experiments.run_sets_baseline
 
 ## stat — Wilcoxon Signed-Rank Test: QDPS vs SETS/DeepGD/RS (30 runs)
 stat:
-	$(PYTHON) statistical_test.py
+	cd .. && $(PYTHON) -m qdps.analysis.statistical_test
 
 ## help — Show available commands
 help:

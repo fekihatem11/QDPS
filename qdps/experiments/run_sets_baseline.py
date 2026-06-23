@@ -10,10 +10,8 @@ import time
 import json
 import numpy as np
 
-from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
-
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "sets_results")
+from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, SETS_RESULTS_DIR as RESULTS_DIR
 
 N_RUNS = 30
 BUDGETS = [100, 300, 500]

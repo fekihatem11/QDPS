@@ -10,7 +10,7 @@ Background lives in `docs/RESEARCH_LOG.md` (experiment history) and `docs/METHOD
 
 ## Common commands
 
-The canonical entry point is the Makefile in `qdps/`. Run from inside `qdps/`:
+After a one-time `pip install -e .` at the repo root, the canonical entry point is the Makefile. Run `make -C qdps <target>` from the repo root, or `make <target>` from inside `qdps/` — both work (the Makefile recipes `cd ..` to the repo root so the `qdps` package resolves).
 
 ```
 make compare       # Run QDPS once and print comparison vs SETS / DeepGD / RS (paper FDRs)
@@ -39,7 +39,7 @@ Dependencies live in `SETS/requirements.txt` (conda export with TF/Keras pinned 
 
 There are **two parallel scaffoldings** for the same research workflow. Don't mix them up:
 
-- **`qdps/`** — current consolidated home for the proposed method. Self-contained: `qdps.py` (algorithm), `data_loader.py`, `run_experiment.py`, `run_single_subject.py`, `run_sets_baseline.py`, `statistical_test.py`, `generate_*_table.py`, plus a `Makefile`. Results go to `qdps/results/` and `qdps/sets_results/`.
+- **`qdps/`** — current consolidated home for the proposed method, structured as the importable package `qdps` (editable-installed via the root `pyproject.toml` with `pip install -e .`). Layout: `qdps.py` (algorithm) and `__init__.py` at the package root; `io/` (`loader.py` — was `data_loader.py` — and `paths.py`, centralized path constants); `experiments/` (`run_experiment.py`, `run_single_subject.py`, `run_sets_baseline.py`); `analysis/` (`compare_results.py`, `statistical_test.py`, `generate_*_table.py`); `datasets/` (input data assets); `docs/` (BASELINES + tables); plus a `Makefile`. Results go to `qdps/results/` and `qdps/sets_results/`.
 - **`methods/` + `scripts/`** — older method-comparison framework. `methods/` holds candidate algorithms tried during exploration (`dpp_greedy.py`, `hybrid_dpp.py`, `sets_enhanced.py`, `adaptive_pads.py`, `facility_location.py`, `cluster_stratified.py`, `prob_diversity.py`, …). `scripts/run_experiment.py` dynamically imports any of them by module name. Results go to `experiments/results/<METHOD>_<TIMESTAMP>/`.
 
 `methods/qdps.py` and `qdps/qdps.py` are the same algorithm — keep them in sync when editing.
@@ -59,15 +59,15 @@ Return value is the list of selected test-input indices. The runner times the ca
 
 All input data needed by the main QDPS comparison lives **inside `qdps/`** (the original SETS replication package under `SETS/` is no longer referenced by any code path). The relevant folders:
 
-- `qdps/fault_clusters/<subject>/` — ground-truth fault structure for each subject (was `SETS/Input_data/Fault_clusters/`). Files:
+- `qdps/datasets/fault_clusters/<subject>/` — ground-truth fault structure for each subject (was `SETS/Input_data/Fault_clusters/`). Files:
   - `output_probability.npy` — model softmax outputs (n_samples × n_classes)
   - `cluster_results.npy` (`.pkl` for TinyImageNet) — cluster label per misclassified input; `-1` = noise
   - `mis_index_test.npy` (`.pkl` for TinyImageNet) — indices of misclassified test inputs
-- `qdps/features_for_selection/features_test_<subject>.npy` — VGG16 features (min-max normalized, X_scf variant) used by the QDPS / SETS *selection* kernel. `data_loader.load_subject` falls back here when `features_test.npy` is missing in a subject folder.
-- `qdps/baseline_results/{SETS,DeepGD,RS}/<subject>/` — published per-method per-run selection outputs (was `SETS/Experiment_results/RQ2&3/`). Used by `statistical_test.py`.
+- `qdps/datasets/features_for_selection/features_test_<subject>.npy` — VGG16 features (min-max normalized, X_scf variant) used by the QDPS / SETS *selection* kernel. `qdps.io.loader.load_subject` falls back here when `features_test.npy` is missing in a subject folder; the path constant lives in `qdps/io/paths.py` (`FEATURES_FOR_SELECTION`).
+- `qdps/datasets/baseline_results/{SETS,DeepGD,RS}/<subject>/` — published per-method per-run selection outputs (was `SETS/Experiment_results/RQ2&3/`). Used by `statistical_test.py`.
 - `qdps/robustness/features_for_clustering/<dataset>/features_{train,test}_raw.npy` — raw VGG16 features used by the **fault-clustering** pipeline (UMAP + HDBSCAN), one subfolder per dataset (`mnist/`, `cifar10/`, …), separate from the selection-kernel features above because clustering needs un-normalized output.
 
-`fault_clusters/` folder names don't all match `data_name_model_name` exactly (`cifar10_12conv` is lowercase, `Fruit360_ResNet50` etc.). Use `FOLDER_MAP` in `data_loader.py` — don't construct paths by hand.
+`fault_clusters/` folder names don't all match `data_name_model_name` exactly (`cifar10_12conv` is lowercase, `Fruit360_ResNet50` etc.). Use `FOLDER_MAP` in `qdps/io/loader.py` — don't construct paths by hand.
 
 FDR computation (`compute_fdr`) follows the SETS paper's **"1noisy"** convention: all noise-cluster (-1) misclassifications collapse to a single "fault", and `FDR = unique_faults_found / min(budget, total_faults)`. Don't change this — it's what the published numbers are measured against.
 
@@ -207,7 +207,7 @@ Login nodes only have CPUs — GPU work always goes through `sbatch`/`salloc`.
 
 ## Conventions
 
-- Published baseline FDRs (SETS / DeepGD / RS paper Table 3 numbers) are duplicated in `qdps/BASELINES.md`, `qdps/run_single_subject.py`, `qdps/compare_results.py`, and `scripts/compare_results.py`. If any of them changes, update all four.
+- Published baseline FDRs (SETS / DeepGD / RS paper Table 3 numbers) are duplicated in `qdps/docs/BASELINES.md`, `qdps/experiments/run_single_subject.py`, `qdps/analysis/compare_results.py`, and `scripts/compare_results.py`. If any of them changes, update all four.
 - Win/loss thresholds use a **±0.005 FDR band** for "tie" (see `compare_with_baseline` / `run_qdps_comparison`).
 - Experiment outputs always include `meta` (method, timestamp, n_runs, budgets, subjects) plus per-run FDR/time arrays so results stay reproducible.
 - The repo at `/Users/artem/Desktop/TCP` **is** a git repository now (initialized 2026-05-13, pushed to https://github.com/fekihatem11/QDPS). The vendored `SETS/` directory still has its own `.git/` — don't touch it.

@@ -12,13 +12,11 @@ import warnings
 import numpy as np
 from scipy.stats import wilcoxon
 
-from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 from qdps import select as qdps_select
+from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, BASELINE_RESULTS as BASELINE_DIR
 
 warnings.filterwarnings('ignore')
-
-BASELINE_DIR = os.path.join(os.path.dirname(__file__), "baseline_results")
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
 
 N_RUNS = 30
 BUDGETS = [100, 300, 500]

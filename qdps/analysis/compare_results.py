@@ -2,11 +2,9 @@
 Compare QDPS results against published baselines: SETS, DeepGD, and RS.
 """
 import warnings
-from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 from qdps import select as qdps_select
-import os
-
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
+from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA
 
 # Published SETS FDRs (Paper Table 3)
 SETS_PAPER = {

@@ -7,11 +7,11 @@ import os
 import json
 import time
 import numpy as np
-from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 from qdps import select as qdps_select
+from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, SETS_RESULTS_DIR, DOCS_DIR
 
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
-SETS_RESULTS = os.path.join(os.path.dirname(__file__), "sets_results", "sets_results.json")
+SETS_RESULTS = os.path.join(SETS_RESULTS_DIR, "sets_results.json")
 BUDGETS = [100, 300, 500]
 N_RUNS = 30
 
@@ -108,7 +108,7 @@ def generate():
     table_str = "\n".join(latex)
 
     # Save
-    output_path = os.path.join(os.path.dirname(__file__), "table_time_qdps_vs_sets.tex")
+    output_path = os.path.join(DOCS_DIR, "table_time_qdps_vs_sets.tex")
     with open(output_path, "w") as f:
         f.write(table_str)
 
