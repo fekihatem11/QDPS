@@ -5,10 +5,9 @@ Since both methods are deterministic, bold = strictly higher FDR.
 """
 import os
 import numpy as np
-from data_loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
 from qdps import select as qdps_select
-
-BASE_DATA = os.path.join(os.path.dirname(__file__), "fault_clusters")
+from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, DOCS_DIR
 BUDGETS = [100, 300, 500]
 
 SUBJECTS_DISPLAY = [
@@ -120,7 +119,7 @@ def generate():
     table_str = "\n".join(final_latex)
 
     # Save
-    output_path = os.path.join(os.path.dirname(__file__), "table_qdps_vs_sets.tex")
+    output_path = os.path.join(DOCS_DIR, "table_qdps_vs_sets.tex")
     with open(output_path, "w") as f:
         f.write(table_str)
 
