@@ -21,7 +21,6 @@ import numpy as np
 from qdps import select as qdps_select
 from qdps.io.loader import load_subject, compute_fdr
 from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA
-import os
 
 BUDGETS = [100, 300, 500]
 
