@@ -9,12 +9,11 @@ import time
 import numpy as np
 from datetime import datetime
 
-from data_loader import DATA_MODEL_PAIRS, load_subject, compute_fdr
 from qdps import select as qdps_select, METHOD_NAME
+from qdps.io.loader import DATA_MODEL_PAIRS, load_subject, compute_fdr
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA_PATH, RESULTS_DIR
 
 BUDGETS = [100, 300, 500]
-BASE_DATA_PATH = os.path.join(os.path.dirname(__file__), "fault_clusters")
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 def run_single(subject, budget):
