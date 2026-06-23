@@ -39,7 +39,7 @@ Dependencies live in `SETS/requirements.txt` (conda export with TF/Keras pinned 
 
 There are **two parallel scaffoldings** for the same research workflow. Don't mix them up:
 
-- **`qdps/`** — current consolidated home for the proposed method. Self-contained: `qdps.py` (algorithm), `data_loader.py`, `run_experiment.py`, `run_single_subject.py`, `run_sets_baseline.py`, `statistical_test.py`, `generate_*_table.py`, plus a `Makefile`. Results go to `qdps/results/` and `qdps/sets_results/`.
+- **`qdps/`** — current consolidated home for the proposed method, structured as the importable package `qdps` (editable-installed via the root `pyproject.toml` with `pip install -e .`). Layout: `qdps.py` (algorithm) and `__init__.py` at the package root; `io/` (`loader.py` — was `data_loader.py` — and `paths.py`, centralized path constants); `experiments/` (`run_experiment.py`, `run_single_subject.py`, `run_sets_baseline.py`); `analysis/` (`compare_results.py`, `statistical_test.py`, `generate_*_table.py`); `datasets/` (input data assets); `docs/` (BASELINES + tables); plus a `Makefile`. Results go to `qdps/results/` and `qdps/sets_results/`.
 - **`methods/` + `scripts/`** — older method-comparison framework. `methods/` holds candidate algorithms tried during exploration (`dpp_greedy.py`, `hybrid_dpp.py`, `sets_enhanced.py`, `adaptive_pads.py`, `facility_location.py`, `cluster_stratified.py`, `prob_diversity.py`, …). `scripts/run_experiment.py` dynamically imports any of them by module name. Results go to `experiments/results/<METHOD>_<TIMESTAMP>/`.
 
 `methods/qdps.py` and `qdps/qdps.py` are the same algorithm — keep them in sync when editing.
