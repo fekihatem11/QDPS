@@ -9,7 +9,7 @@ import os
 import numpy as np
 from scipy.stats import wilcoxon
 
-from qdps.io.paths import RETRAIN_RESULTS_DIR
+from qdps.io.paths import RETRAIN_SUBJECTS_DIR
 
 
 def aggregate(acc_res, improvements):
@@ -49,17 +49,17 @@ def wilcoxon_qdps_vs_sets(qdps_imps, sets_imps):
 def save_subject_result(subject_key, subject_result, meta):
     """Persist one subject's result to the durable accumulating store.
 
-    Overwrites ``RETRAIN_RESULTS_DIR/<subject>.json`` so re-running a subject
+    Overwrites ``RETRAIN_SUBJECTS_DIR/<subject>.json`` so re-running a subject
     refreshes it; other subjects' files are untouched. The comparison table is
     built from whatever subject files exist.
     """
-    os.makedirs(RETRAIN_RESULTS_DIR, exist_ok=True)
+    os.makedirs(RETRAIN_SUBJECTS_DIR, exist_ok=True)
     payload = {
         "subject": subject_key,
         "meta": meta,
         **subject_result,   # acc_ori + per-budget {QDPS,SETS,stats}
     }
-    path = os.path.join(RETRAIN_RESULTS_DIR, f"{subject_key}.json")
+    path = os.path.join(RETRAIN_SUBJECTS_DIR, f"{subject_key}.json")
     with open(path, "w") as f:
         json.dump(payload, f, indent=2)
     return path

@@ -11,7 +11,7 @@ from datetime import datetime
 
 from qdps import select as qdps_select, METHOD_NAME
 from qdps.io.loader import DATA_MODEL_PAIRS, load_subject, compute_fdr
-from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA_PATH, RESULTS_DIR
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA_PATH, FDR_RESULTS_DIR as RESULTS_DIR
 
 BUDGETS = [100, 300, 500]
 

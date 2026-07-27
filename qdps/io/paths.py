@@ -9,8 +9,10 @@ FAULT_CLUSTERS = DATASETS / "fault_clusters"
 FEATURES_FOR_SELECTION = DATASETS / "features_for_selection"
 BASELINE_RESULTS = DATASETS / "baseline_results"
 
+# ONE results root; each experiment gets its own subfolder.
 RESULTS_DIR = PKG_ROOT / "results"
-SETS_RESULTS_DIR = PKG_ROOT / "sets_results"
+FDR_RESULTS_DIR = RESULTS_DIR / "fdr"                # QDPS FDR experiment runs
+SETS_RESULTS_DIR = RESULTS_DIR / "sets_baseline"     # SETS baseline FDR runs
 DOCS_DIR = PKG_ROOT / "docs"
 
 # RQ4 retraining experiment assets (vendored from the SETS replication package).
@@ -20,8 +22,11 @@ PRETRAINED_MODELS = RETRAIN_DIR / "pretrained"     # model_{data}_{model}.h5
 RETRAIN_SPLITS = RETRAIN_DIR / "splits"            # {data}_{model}.pkl  (the test pool T)
 RAW_DATA_DIR = RETRAIN_DIR / "raw"                 # SVHN .mat / Fruit .npy / TinyImageNet images
 
-# All retraining-experiment outputs live under the retrain package folder:
-# the durable per-subject store (<subject>.json, accumulated across runs) and the
-# timestamped full-run dirs (RETRAIN_<ts>/). Override via QDPS_RETRAIN_DIR's sibling
-# is not needed; this stays with the experiment code.
-RETRAIN_RESULTS_DIR = PKG_ROOT / "retrain" / "results"
+# Retraining-experiment outputs, one subfolder per part:
+#   subjects/  durable per-subject store (<subject>.json, accumulated across runs)
+#   runs/      timestamped full-run snapshots (RETRAIN_<ts>/)
+#   tables/    generated comparison tables
+RETRAIN_RESULTS_DIR = RESULTS_DIR / "retrain"
+RETRAIN_SUBJECTS_DIR = RETRAIN_RESULTS_DIR / "subjects"
+RETRAIN_RUNS_DIR = RETRAIN_RESULTS_DIR / "runs"
+RETRAIN_TABLES_DIR = RETRAIN_RESULTS_DIR / "tables"

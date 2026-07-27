@@ -16,7 +16,7 @@ import sys
 from datetime import datetime
 
 from qdps.io.loader import load_subject
-from qdps.io.paths import RETRAIN_RESULTS_DIR
+from qdps.io.paths import RETRAIN_RUNS_DIR
 from qdps.experiments.run_single_subject import SUBJECT_MAP
 from qdps.retrain.raw_data import load_raw_subject, load_pretrained_model
 from qdps.retrain.splits import load_T, make_V, selection_pool
@@ -96,7 +96,7 @@ def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
         store_path = save_subject_result(subject_key, sub_result, meta)
         print(f"  saved -> {store_path}")
 
-    exp_dir = RETRAIN_RESULTS_DIR / f"RETRAIN_{timestamp}"
+    exp_dir = RETRAIN_RUNS_DIR / f"RETRAIN_{timestamp}"
     summary = write_results(str(exp_dir), meta, results)
     print(f"\n{summary}\nSaved to: {exp_dir}/")
     return results, exp_dir
