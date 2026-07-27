@@ -10,9 +10,25 @@ from dataclasses import dataclass
 class RetrainConfig:
     epochs: int = 30
     batch_size: int = 50
+    optimizer: str = "adadelta"     # "adadelta" | "adam"
     lr: float = 0.005
     val_size: int = 2500
     loss: str = "categorical_crossentropy"
+
+
+# Per-subject deviations from the default protocol, mirroring the original
+# scripts: retrain_four.py (default) vs retrain_fruit.py (Adam 1e-5, batch 100,
+# sparse integer labels, 5000-sample fit-monitoring split).
+SUBJECT_CONFIGS = {
+    "Fruit360_ResNet50": RetrainConfig(
+        epochs=30, batch_size=100, optimizer="adam", lr=0.00001,
+        val_size=5000, loss="sparse_categorical_crossentropy",
+    ),
+}
+
+
+def config_for(subject_key):
+    return SUBJECT_CONFIGS.get(subject_key, RetrainConfig())
 
 
 def _backend(framework):

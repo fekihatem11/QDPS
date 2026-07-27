@@ -21,7 +21,7 @@ from qdps.experiments.run_single_subject import SUBJECT_MAP
 from qdps.retrain.raw_data import load_raw_subject, load_pretrained_model
 from qdps.retrain.splits import load_T, make_V, selection_pool
 from qdps.retrain.selectors import SELECTORS
-from qdps.retrain.retrain_step import RetrainConfig, original_accuracy, retrain_and_eval
+from qdps.retrain.retrain_step import config_for, original_accuracy, retrain_and_eval
 from qdps.retrain.report import (
     aggregate, wilcoxon_qdps_vs_sets, write_results, save_subject_result,
 )
@@ -30,7 +30,8 @@ from qdps.retrain.report import (
 MNIST_SUBJECTS = ["mnist_LeNet1", "mnist_LeNet5"]
 
 
-def run_subject(subject_key, budgets, methods, n_runs, seed, cfg):
+def run_subject(subject_key, budgets, methods, n_runs, seed, cfg=None):
+    cfg = cfg or config_for(subject_key)        # per-subject protocol (fruit differs)
     dn, mn = SUBJECT_MAP[subject_key]
     sel = load_subject(dn, mn)                  # selection artifacts (features, probs, index)
     raw = load_raw_subject(subject_key)         # raw images + labels
@@ -45,7 +46,7 @@ def run_subject(subject_key, budgets, methods, n_runs, seed, cfg):
     print(f"\n{'='*70}\n  {subject_key}  |  |T|={len(T)} |V|={len(V)} |pool|={len(pool)}"
           f"  acc_ori(V)={acc_ori:.4f}\n{'='*70}")
 
-    sub_result = {"acc_ori": acc_ori}
+    sub_result = {"acc_ori": acc_ori, "retrain_config": vars(cfg)}
     for k in budgets:
         k_result = {}
         method_imps = {}
@@ -74,7 +75,6 @@ def run_subject(subject_key, budgets, methods, n_runs, seed, cfg):
 
 def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
                            n_runs=5, seed=0, cfg=None):
-    cfg = cfg or RetrainConfig()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     meta = {
         "experiment": "RQ4_retrain",
@@ -83,7 +83,8 @@ def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
         "budgets": list(budgets),
         "methods": list(methods),
         "subjects": list(subjects),
-        "retrain_config": vars(cfg),
+        # per-subject config recorded in each subject result (fruit differs)
+        "retrain_config": vars(cfg) if cfg else "per-subject",
         "seed": seed,
     }
     results = {}

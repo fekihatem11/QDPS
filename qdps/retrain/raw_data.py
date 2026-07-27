@@ -122,8 +122,40 @@ def _load_svhn():
     )
 
 
-# subject_key -> callable returning a RawSubject. Fruit/Tiny are added as
-# their raw data + (for Tiny) a torch backend land.
+def _load_fruit360():
+    """Fruit-360 from prebuilt npy arrays (see build_fruit_npy.py).
+
+    Faithful to retrain_fruit.py: images stay UNSCALED (raw 0..255 float32,
+    ``flag=False`` in the original — the model expects that), labels are
+    INTEGER class indices used with sparse_categorical_crossentropy, and the
+    T/V pool spans the full 23619-image test set.
+    """
+    fruit_dir = RAW_DATA_DIR / "fruit360"
+    needed = ["fruit_x_train_origin.npy", "fruit_y_train.npy",
+              "fruit_x_test_origin.npy", "fruit_y_test.npy"]
+    missing = [n for n in needed if not (fruit_dir / n).exists()]
+    if missing:
+        raise MissingDataError(
+            f"Fruit360 arrays missing in {fruit_dir}: {missing}. Build them with "
+            f"qdps/retrain/build_fruit_npy.py from the fruits-360-100x100 dataset."
+        )
+    x_train = np.load(fruit_dir / "fruit_x_train_origin.npy")
+    y_train = np.load(fruit_dir / "fruit_y_train.npy")
+    x_test = np.load(fruit_dir / "fruit_x_test_origin.npy")
+    y_test = np.load(fruit_dir / "fruit_y_test.npy")
+    return RawSubject(
+        x_train=x_train,
+        y_train_oh=y_train,          # integer labels (sparse CE) — see docstring
+        x_test=x_test,
+        y_test_int=np.asarray(y_test).astype(int).ravel(),
+        n_classes=141,
+        framework="keras",
+        v_pool_size=len(x_test),     # retrain_fruit.py: elements = range(23619)
+    )
+
+
+# subject_key -> callable returning a RawSubject. TinyImageNet is added when
+# its raw data + torch backend land.
 RAW_LOADERS = {
     "mnist_LeNet1": _load_mnist,
     "mnist_LeNet5": _load_mnist,
@@ -131,6 +163,7 @@ RAW_LOADERS = {
     "cifar10_12Conv": _load_cifar10,
     "cifar10_ResNet20": _load_cifar10,
     "SVHN_LeNet5": _load_svhn,
+    "Fruit360_ResNet50": _load_fruit360,
 }
 
 

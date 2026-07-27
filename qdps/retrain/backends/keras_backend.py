@@ -26,21 +26,33 @@ def original_accuracy(raw, model_loader, V):
     return float(accuracy_score(raw.y_test_int[V], preds))
 
 
+def _make_optimizer(cfg):
+    if cfg.optimizer == "adadelta":
+        return tf.keras.optimizers.legacy.Adadelta(learning_rate=cfg.lr)
+    if cfg.optimizer == "adam":
+        return tf.keras.optimizers.legacy.Adam(learning_rate=cfg.lr)
+    raise ValueError(f"Unknown optimizer: {cfg.optimizer}")
+
+
 def retrain_and_eval(raw, model_loader, selected, V, cfg, seed):
     """One retraining run: augment -> fresh model -> fit -> eval on V.
 
     Returns {"acc_re": float}. Deterministic given ``seed`` (shuffle + the
-    random 2500-sample fit-monitoring split), modulo backend nondeterminism.
+    random fit-monitoring split), modulo backend nondeterminism.
     """
-    y_test_oh = to_categorical(raw.y_test_int, raw.n_classes)
+    # Test labels in the form the loss expects: integer for sparse CE
+    # (retrain_fruit.py), one-hot otherwise (retrain_four.py).
+    if "sparse" in cfg.loss:
+        y_test_model = raw.y_test_int
+    else:
+        y_test_model = to_categorical(raw.y_test_int, raw.n_classes)
 
     x_new = np.concatenate([raw.x_train, raw.x_test[selected]], axis=0)
-    y_new = np.concatenate([raw.y_train_oh, y_test_oh[selected]], axis=0)
+    y_new = np.concatenate([raw.y_train_oh, y_test_model[selected]], axis=0)
     x, y = shuffle(x_new, y_new, random_state=seed)
 
     model = model_loader()
-    opt = tf.keras.optimizers.legacy.Adadelta(learning_rate=cfg.lr)
-    model.compile(optimizer=opt, loss=cfg.loss)
+    model.compile(optimizer=_make_optimizer(cfg), loss=cfg.loss)
 
     rng = np.random.default_rng(seed)
     val_size = min(cfg.val_size, len(raw.x_test))
@@ -50,7 +62,7 @@ def retrain_and_eval(raw, model_loader, selected, V, cfg, seed):
         x, y,
         epochs=cfg.epochs,
         batch_size=cfg.batch_size,
-        validation_data=(raw.x_test[v_id], y_test_oh[v_id]),
+        validation_data=(raw.x_test[v_id], y_test_model[v_id]),
         verbose=0,
     )
 
