@@ -49,17 +49,36 @@ def wilcoxon_qdps_vs_sets(qdps_imps, sets_imps):
 def save_subject_result(subject_key, subject_result, meta):
     """Persist one subject's result to the durable accumulating store.
 
-    Overwrites ``RETRAIN_SUBJECTS_DIR/<subject>.json`` so re-running a subject
-    refreshes it; other subjects' files are untouched. The comparison table is
-    built from whatever subject files exist.
+    MERGES into ``RETRAIN_SUBJECTS_DIR/<subject>.json``: per-budget method
+    entries are updated individually, so two single-method jobs (e.g. a QDPS
+    job and a SETS job for a heavy subject) accumulate instead of overwriting
+    each other. Once both methods are present for a budget, the Wilcoxon stats
+    are (re)computed from the stored run lists.
     """
     os.makedirs(RETRAIN_SUBJECTS_DIR, exist_ok=True)
-    payload = {
-        "subject": subject_key,
-        "meta": meta,
-        **subject_result,   # acc_ori + per-budget {QDPS,SETS,stats}
-    }
     path = os.path.join(RETRAIN_SUBJECTS_DIR, f"{subject_key}.json")
+
+    payload = {"subject": subject_key, "meta": meta, **subject_result}
+    if os.path.exists(path):
+        with open(path) as f:
+            existing = json.load(f)
+        # merge per-budget method entries from the new result into the old
+        for key, val in payload.items():
+            if isinstance(val, dict) and key not in ("meta",):
+                merged = existing.get(key, {})
+                if isinstance(merged, dict):
+                    merged.update(val)
+                    payload[key] = merged
+        payload = {**existing, **payload}
+
+    # (re)compute stats wherever both methods' run lists are now present
+    for key, kb in payload.items():
+        if isinstance(kb, dict) and "QDPS" in kb and "SETS" in kb:
+            q = [r["improvement"] for r in kb["QDPS"].get("runs", [])]
+            s = [r["improvement"] for r in kb["SETS"].get("runs", [])]
+            if q and s and len(q) == len(s):
+                kb["stats"] = wilcoxon_qdps_vs_sets(q, s)
+
     with open(path, "w") as f:
         json.dump(payload, f, indent=2)
     return path
