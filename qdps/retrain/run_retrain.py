@@ -8,9 +8,10 @@ on V = test \\ T. Both methods select from the *same* pool; the selected inputs
 (subset of T) never overlap V.
 
 Usage:
-    python -m qdps.retrain.run_retrain <subject|all-mnist> [budgets] [n_runs]
+    python -m qdps.retrain.run_retrain <subject|all-mnist> [budgets] [n_runs] [methods]
     e.g. python -m qdps.retrain.run_retrain mnist_LeNet1 500 5
          python -m qdps.retrain.run_retrain all-mnist 500 5
+         python -m qdps.retrain.run_retrain TinyImageNet_ResNet101 500 5 QDPS
 """
 import sys
 from datetime import datetime
@@ -117,7 +118,8 @@ def main(argv):
     subjects = _parse_subjects(argv[0]) if argv else MNIST_SUBJECTS
     budgets = [int(b) for b in argv[1].split(",")] if len(argv) > 1 else [500]
     n_runs = int(argv[2]) if len(argv) > 2 else 5
-    run_retrain_experiment(subjects, budgets=budgets, n_runs=n_runs)
+    methods = tuple(argv[3].split(",")) if len(argv) > 3 else ("QDPS", "SETS")
+    run_retrain_experiment(subjects, budgets=budgets, methods=methods, n_runs=n_runs)
 
 
 if __name__ == "__main__":

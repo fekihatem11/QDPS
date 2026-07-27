@@ -24,6 +24,13 @@ SUBJECT_CONFIGS = {
         epochs=30, batch_size=100, optimizer="adam", lr=0.00001,
         val_size=5000, loss="sparse_categorical_crossentropy",
     ),
+    # retrain_tiny.py: fine-tune from checkpoint, SGD 1e-3 (both parts), batch 64,
+    # 10 epochs, CrossEntropy, best-epoch accuracy on V. (val_size unused: the
+    # torch backend evaluates directly on V each epoch.)
+    "TinyImageNet_ResNet101": RetrainConfig(
+        epochs=10, batch_size=64, optimizer="sgd", lr=0.001,
+        val_size=0, loss="cross_entropy",
+    ),
 }
 
 

@@ -154,8 +154,30 @@ def _load_fruit360():
     )
 
 
-# subject_key -> callable returning a RawSubject. TinyImageNet is added when
-# its raw data + torch backend land.
+@dataclass
+class TorchRawSubject:
+    """Dataset-based subject for the PyTorch backend (images too big for arrays)."""
+    train_set: object        # torchvision ImageFolder
+    val_dataset: object      # TImgNetDataset over val/ (ordering = val_annotations.txt)
+    n_classes: int
+    framework: str = "torch"
+    v_pool_size: int = 10000
+
+
+def _load_tiny():
+    """TinyImageNet-200 (standard layout). Narval-only: needs torch + the dataset."""
+    root = RAW_DATA_DIR / "tiny-imagenet-200"
+    if not root.exists():
+        raise MissingDataError(
+            f"TinyImageNet not found at {root}. Download "
+            f"http://cs231n.stanford.edu/tiny-imagenet-200.zip and unzip there."
+        )
+    from qdps.retrain.backends.torch_backend import load_tiny_data
+    train_set, val_dataset = load_tiny_data(str(root))
+    return TorchRawSubject(train_set=train_set, val_dataset=val_dataset, n_classes=200)
+
+
+# subject_key -> callable returning a RawSubject / TorchRawSubject.
 RAW_LOADERS = {
     "mnist_LeNet1": _load_mnist,
     "mnist_LeNet5": _load_mnist,
@@ -164,6 +186,7 @@ RAW_LOADERS = {
     "cifar10_ResNet20": _load_cifar10,
     "SVHN_LeNet5": _load_svhn,
     "Fruit360_ResNet50": _load_fruit360,
+    "TinyImageNet_ResNet101": _load_tiny,
 }
 
 
@@ -178,7 +201,11 @@ def load_raw_subject(subject_key):
 
 
 def load_pretrained_model(subject_key):
-    """Fresh-load the pretrained model for a subject (Keras subjects only here)."""
+    """Fresh-load the pretrained model for a subject.
+
+    Keras subjects return a loaded model; the torch subject returns the
+    CHECKPOINT PATH (the torch backend rebuilds model+classifier from it).
+    """
     if subject_key not in MODEL_FILE_MAP:
         raise KeyError(f"Unknown subject_key: {subject_key}")
     path = PRETRAINED_MODELS / MODEL_FILE_MAP[subject_key]
@@ -187,5 +214,7 @@ def load_pretrained_model(subject_key):
             f"Pretrained model not found: {path}. Vendor it from "
             f"SETS/Input_data/Pretrained_model/{MODEL_FILE_MAP[subject_key]}"
         )
+    if path.suffix != ".h5":                      # torch checkpoint (.pth.tar)
+        return str(path)
     from tensorflow.keras.models import load_model
     return load_model(str(path), compile=False)
