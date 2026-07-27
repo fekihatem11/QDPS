@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from qdps.io.paths import PRETRAINED_MODELS
+from qdps.io.paths import PRETRAINED_MODELS, RAW_DATA_DIR
 
 
 class MissingDataError(FileNotFoundError):
@@ -25,6 +25,10 @@ class RawSubject:
     y_test_int: np.ndarray   # integer test labels (n_test,)
     n_classes: int
     framework: str           # "keras" | "torch"
+    # Index range the T/V split is drawn from. The original retrain_four.py
+    # hardcodes range(10000) even for SVHN (26k test images), so V must be the
+    # complement of T within the first v_pool_size indices, not the full test set.
+    v_pool_size: int = 10000
 
 
 # Pretrained model filename per subject_key (exact on-disk casing).
@@ -85,7 +89,40 @@ def _load_cifar10():
     return _keras_subject(x_train, y_train, x_test, y_test, 10)
 
 
-# subject_key -> callable returning a RawSubject. SVHN/Fruit/Tiny are added as
+def _load_svhn():
+    """SVHN from the Stanford .mat files (labels 1..10, '10' = digit 0).
+
+    Faithful to retrain_four.py: LabelBinarizer one-hot for train; test labels
+    one-hot then argmax to ints. The (32,32,3,N) arrays are moved to (N,32,32,3).
+    """
+    from scipy.io import loadmat
+    from sklearn.preprocessing import LabelBinarizer
+    svhn_dir = RAW_DATA_DIR / "svhn"
+    train_path = svhn_dir / "train_32x32.mat"
+    test_path = svhn_dir / "test_32x32.mat"
+    if not train_path.exists() or not test_path.exists():
+        raise MissingDataError(
+            f"SVHN .mat files not found in {svhn_dir}. Download train_32x32.mat "
+            f"and test_32x32.mat from http://ufldl.stanford.edu/housenumbers/"
+        )
+    train_raw = loadmat(str(train_path))
+    test_raw = loadmat(str(test_path))
+    x_train = np.moveaxis(np.array(train_raw["X"]), -1, 0).reshape(-1, 32, 32, 3)
+    x_test = np.moveaxis(np.array(test_raw["X"]), -1, 0).reshape(-1, 32, 32, 3)
+    lb = LabelBinarizer()
+    y_train_oh = np.asarray(lb.fit_transform(train_raw["y"]))
+    y_test_int = np.argmax(np.asarray(lb.fit_transform(test_raw["y"])), axis=1)
+    return RawSubject(
+        x_train=_scale(x_train),
+        y_train_oh=y_train_oh,
+        x_test=_scale(x_test),
+        y_test_int=y_test_int,
+        n_classes=10,
+        framework="keras",
+    )
+
+
+# subject_key -> callable returning a RawSubject. Fruit/Tiny are added as
 # their raw data + (for Tiny) a torch backend land.
 RAW_LOADERS = {
     "mnist_LeNet1": _load_mnist,
@@ -93,6 +130,7 @@ RAW_LOADERS = {
     "Fashion_mnist_LeNet4": _load_fashion,
     "cifar10_12Conv": _load_cifar10,
     "cifar10_ResNet20": _load_cifar10,
+    "SVHN_LeNet5": _load_svhn,
 }
 
 

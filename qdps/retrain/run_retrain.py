@@ -35,8 +35,7 @@ def run_subject(subject_key, budgets, methods, n_runs, seed, cfg):
     sel = load_subject(dn, mn)                  # selection artifacts (features, probs, index)
     raw = load_raw_subject(subject_key)         # raw images + labels
     T = load_T(subject_key)
-    n_test = len(raw.x_test)
-    V = make_V(T, n_test)
+    V = make_V(T, raw.v_pool_size)
     pool = selection_pool(T, sel["index"])
 
     def model_loader():
