@@ -97,7 +97,10 @@ def run_retrain_experiment(subjects, budgets=(500,), methods=("QDPS", "SETS"),
         store_path = save_subject_result(subject_key, sub_result, meta)
         print(f"  saved -> {store_path}")
 
-    exp_dir = RETRAIN_RUNS_DIR / f"RETRAIN_{timestamp}"
+    # include subjects in the dir name so parallel jobs starting in the same
+    # second don't collide on a timestamp-only name
+    tag = "-".join(subjects)[:60]
+    exp_dir = RETRAIN_RUNS_DIR / f"RETRAIN_{tag}_{timestamp}"
     summary = write_results(str(exp_dir), meta, results)
     print(f"\n{summary}\nSaved to: {exp_dir}/")
     return results, exp_dir
