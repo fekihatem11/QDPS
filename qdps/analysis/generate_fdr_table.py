@@ -7,7 +7,7 @@ import os
 import numpy as np
 from qdps import select as qdps_select
 from qdps.io.loader import load_subject, compute_fdr, DATA_MODEL_PAIRS
-from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, DOCS_DIR
+from qdps.io.paths import FAULT_CLUSTERS as BASE_DATA, FDR_RESULTS_DIR
 BUDGETS = [100, 300, 500]
 
 SUBJECTS_DISPLAY = [
@@ -119,7 +119,8 @@ def generate():
     table_str = "\n".join(final_latex)
 
     # Save
-    output_path = os.path.join(DOCS_DIR, "table_qdps_vs_sets.tex")
+    os.makedirs(os.path.join(FDR_RESULTS_DIR, "tables"), exist_ok=True)
+    output_path = os.path.join(FDR_RESULTS_DIR, "tables", "table_qdps_vs_sets.tex")
     with open(output_path, "w") as f:
         f.write(table_str)
 
