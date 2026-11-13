@@ -80,3 +80,4 @@ qdps/datasets/retrain/
 !/qdps/
 !/pyproject.toml
 !/.gitignore
+!/.env.example

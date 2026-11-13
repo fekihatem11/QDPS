@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=retrain-deepgd
-#SBATCH --account=def-manel131
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
@@ -19,7 +18,8 @@ set -euo pipefail
 SUBJECT="${1:?usage: retrain_subject.sh <subject> [conditions] [n_runs]}"
 CONDITIONS="${2:-QDPS,SETS,FULL_T,FULL_G}"
 N_RUNS="${3:-5}"
-PROJECT=/project/def-manel131/artem11/QDPS
+source "${QDPS_REPO_DIR:-$HOME/QDPS}/qdps/retrain/slurm/env.sh"  # cluster settings from .env
+PROJECT=$QDPS_PROJECT_DIR
 export QDPS_RETRAIN_DIR=$PROJECT/retrain
 
 module load StdEnv/2023 python/3.10 gcc/12.3 opencv/4.10.0 cuda cudnn

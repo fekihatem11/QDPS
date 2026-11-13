@@ -16,6 +16,7 @@
 # subject) and the conditions (default: QDPS SETS FULL_T FULL_G), e.g. to rerun FULL_T FULL_G.
 set -euo pipefail
 cd $HOME/QDPS
+source qdps/retrain/slurm/env.sh  # cluster settings from .env (exports SBATCH_ACCOUNT)
 PREP_JOB="${1:-}"
 GPU_SMALL="${GPU_SMALL:-1}"
 GPU_LARGE="${GPU_LARGE:-1}"

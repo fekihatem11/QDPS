@@ -6,6 +6,7 @@
 #   cd $HOME/QDPS && bash qdps/retrain/slurm/submit_rq4.sh
 set -euo pipefail
 cd $HOME/QDPS
+source qdps/retrain/slurm/env.sh  # cluster settings from .env (exports SBATCH_ACCOUNT)
 LOGS=$SCRATCH/QDPS/logs
 mkdir -p $LOGS
 S=qdps/retrain/slurm/retrain_subject.sh
@@ -13,7 +14,7 @@ MIG=nvidia_h100_80gb_hbm3_3g.40gb:1
 
 START_RUN=${START_RUN:-0}
 sub() {  # <subject> <methods> <gpu> <mem> <time>
-    sbatch --account=def-manel131 --job-name=rq4-$1-${2/,/+}-r$START_RUN --gpus-per-node=$3 --mem=$4 --time=$5 \
+    sbatch --job-name=rq4-$1-${2/,/+}-r$START_RUN --gpus-per-node=$3 --mem=$4 --time=$5 \
         --output=$LOGS/%x-%j.out $S "$1" 500 5 "$2" $START_RUN
 }
 for s in mnist_LeNet1 mnist_LeNet5 Fashion_mnist_LeNet4; do sub $s QDPS,SETS $MIG 32G 4:00:00; done

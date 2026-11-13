@@ -4,6 +4,7 @@
 #   cd $HOME/QDPS && bash qdps/retrain/retrain_deepgd_version/slurm/submit_tuning.sh
 set -euo pipefail
 cd $HOME/QDPS
+source qdps/retrain/slurm/env.sh  # cluster settings from .env (exports SBATCH_ACCOUNT)
 mkdir -p $SCRATCH/QDPS/logs
 S=qdps/retrain/retrain_deepgd_version/slurm/tune_settings.sh
 MIG=nvidia_h100_80gb_hbm3_3g.40gb:1

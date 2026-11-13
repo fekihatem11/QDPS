@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=prep-fruit-tiny
-#SBATCH --account=def-manel131
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
@@ -17,7 +16,8 @@
 # Submit from the repo root:  sbatch qdps/retrain/retrain_deepgd_version/slurm/prepare_large_datasets.sh
 set -euo pipefail
 
-PROJECT=/project/def-manel131/artem11/QDPS
+source "${QDPS_REPO_DIR:-$HOME/QDPS}/qdps/retrain/slurm/env.sh"  # cluster settings from .env
+PROJECT=$QDPS_PROJECT_DIR
 ARCHIVES=$PROJECT/retrain/raw/archives
 export QDPS_RETRAIN_DIR=$PROJECT/retrain
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # RQ4 retraining experiment (SETS protocol) — one subject per job, on Fir or Narval.
 #
-#   sbatch --account=def-manel131 --gpus-per-node=<gpu> [--mem=.. --time=..] \
+#   sbatch --gpus-per-node=<gpu> [--mem=.. --time=..] \
 #       qdps/retrain/slurm/retrain_subject.sh <subject_key> [k] [n_runs] [methods] [start_run]
 #
 # start_run > 0 (e.g. 5 = runs 6-10) stores into results/retrain/subjects_runs<a>-<b>/.
@@ -23,7 +23,8 @@ K="${2:-500}"
 N_RUNS="${3:-5}"
 METHODS="${4:-QDPS,SETS}"
 START_RUN="${5:-0}"
-PROJECT=/project/def-manel131/artem11/QDPS
+source "${QDPS_REPO_DIR:-$HOME/QDPS}/qdps/retrain/slurm/env.sh"  # cluster settings from .env
+PROJECT=$QDPS_PROJECT_DIR
 export QDPS_RETRAIN_DIR=$PROJECT/retrain
 
 module load StdEnv/2023 python/3.10 gcc/12.3 opencv/4.10.0 cuda cudnn

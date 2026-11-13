@@ -76,7 +76,7 @@ python -m qdps.retrain.retrain_deepgd_version.report
 Extra dependency: OpenCV 4.10 (blur filters): `opencv-python-headless==4.10.0.84` in
 `.venv`, `module load gcc/12.3 opencv/4.10.0` on Narval.
 
-**Official copies = Narval's** (`/project/def-manel131/artem11/QDPS/retrain/generated/`),
+**Official copies = Narval's** (`$QDPS_PROJECT_DIR/retrain/generated/`, see `.env.example`),
 since all retraining runs there. Mac and Narval agree bit for bit on rotation, zoom, shear
 and brightness. Blur differs only through the bilateral filter (different OpenCV builds):
 ±1 intensity level on 1 Fashion-MNIST and 37 CIFAR-10 images.

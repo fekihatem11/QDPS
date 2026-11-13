@@ -4,6 +4,7 @@
 # Logs go to $SCRATCH/QDPS/logs/pilot-<subject>-<condition>-<tag>-<jobid>.out
 set -euo pipefail
 cd $HOME/QDPS
+source qdps/retrain/slurm/env.sh  # cluster settings from .env (exports SBATCH_ACCOUNT)
 mkdir -p $SCRATCH/QDPS/logs
 S=qdps/retrain/retrain_deepgd_version/slurm/pilot_settings.sh
 MIG=nvidia_h100_80gb_hbm3_3g.40gb:1
