@@ -1,0 +1,82 @@
+# macOS
+.DS_Store
+
+# Editor local config
+.idea/
+.vscode/
+
+# Vendored SETS replication package (clone from upstream)
+SETS/
+
+# Exploratory method modules (not part of the published method)
+methods/
+
+# Older method-comparison framework (superseded by qdps/)
+scripts/
+
+# PowerPoint slides — binary, edit locally
+docs/*.pptx
+
+# Experiment scratch space (configs/logs/results regenerable)
+/experiments/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Large artifacts (review per-folder before unignoring)
+*.npy
+*.pkl
+*.h5
+*.keras
+*.pt
+*.pth
+*.ckpt
+
+# Experiment outputs (often huge / regenerable)
+results/
+qdps/results/
+qdps/robustness/
+experiments/results/
+
+# Vendored RQ4 retraining assets (pretrained models / splits / raw data — large, regenerable)
+qdps/datasets/retrain/
+
+
+# Remote holds only the qdps package (+ pyproject.toml, .gitignore); everything else stays local
+/*
+!/qdps/
+!/pyproject.toml
+!/.gitignore
